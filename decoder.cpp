@@ -18,8 +18,6 @@ void generateSizeTable(int* iHuffSize) {
     } while (!(i > 16));
 }
 
-
-void generateCodeTable(
 int main() {
     int iHuffSize = 0;
     
