@@ -1,11 +1,13 @@
 #include <iostream>
 
 using namespace std;
-int iBit[] = {0, 0, 0, 7, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
+
+int iBITS[] = {0, 0, 0, 7, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
+int iHUFFVAL[] = {0x4, 0x5, 0x3, 0x2, 0x6, 0x1, 0x0, 0x7, 0x8, 0x9, 0xA, 0xB};
 
 // Input BITS list
 // Output HUFFSIZE table
-void generateSizeTable(int *BITS, int *HUFFSIZE) {
+int generateSizeTable(int *BITS, int *HUFFSIZE) {
     int k = 0;
     int i = 1, j = 1;
     
@@ -18,6 +20,8 @@ void generateSizeTable(int *BITS, int *HUFFSIZE) {
         i++;
         j = 1;
     } while (!(i > 16));
+
+    return k;
 }
 
 // Input HUFFSIZE table
@@ -44,24 +48,69 @@ void generateCodeTable(int *HUFFSIZE, int *HUFFCODE) {
     }
 }
 
+void generateEHUFCOandEHUFSI(int *HUFFSIZE, int *HUFFCODE, int *HUFFVAL, int *EHUFCO, int *EHUFSI,
+ int LASTK) {
+
+    int i;
+    int k = 0;
+
+    do {
+        i = HUFFVAL[k];
+        
+        EHUFCO[i] = HUFFCODE[k];
+        EHUFSI[i] = HUFFSIZE[k];
+
+        k++;
+    } while (k < LASTK);
+}
+
 int main() {
     int iHuffSizeCount = 0;
     
     for (int i = 0; i < 17; i++)
-        iHuffSizeCount += iBit[i];
+        iHuffSizeCount += iBITS[i];
     
     int *iHUFFSIZE = new int[iHuffSizeCount];
     
-    generateSizeTable(iBit, iHUFFSIZE);
+    int iLASTK = generateSizeTable(iBITS, iHUFFSIZE);
     
     int *iHUFFCODE = new int[iHuffSizeCount];
 
     generateCodeTable(iHUFFSIZE, iHUFFCODE);
         
+
+    int *iEHUFCO = new int[iHuffSizeCount];
+    int *iEHUFSI = new int[iHuffSizeCount];
+
+    generateEHUFCOandEHUFSI(iHUFFSIZE, iHUFFCODE, iHUFFVAL, iEHUFCO, iEHUFSI, iLASTK);
+
+    cout << "HUFFSIZE: ";
     for (int i = 0; i < iHuffSizeCount; i++)
-        cout << iHUFFCODE[i] << endl;
+        cout << iHUFFSIZE[i] << " ";
+
+    cout << endl;
+
+    cout << "HUFFCODE: ";
+    for (int i = 0; i < iHuffSizeCount; i++)
+        cout << iHUFFCODE[i] << " ";
+
+    cout << endl;
+    
+    cout << "EHUFCO: ";
+    for (int i = 0; i < iHuffSizeCount; i++)
+        cout << iEHUFCO[i] << " ";
+
+    cout << endl;
+
+    cout << "EHUFSI: ";
+    for (int i = 0; i < iHuffSizeCount; i++)
+        cout << iEHUFSI[i] << " ";
  
-    delete[] iHUFFSIZE, iHUFFCODE;
+    cout << endl;
+
+    cout << "LASTK: " << iLASTK << endl;
+    
+    delete[] iHUFFSIZE, iHUFFCODE, iEHUFCO, iEHUFSI;
     
     return 0;
 }
