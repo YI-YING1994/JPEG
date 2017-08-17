@@ -1,6 +1,8 @@
-#include <iostream>
-
-using namespace std;
+/*****************************************************************************************************/
+// 
+// Generate HUFFMAN Tables
+//
+/*****************************************************************************************************/
 
 int iBITS[] = {0, 0, 0, 7, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
 int iHUFFVAL[] = {0x4, 0x5, 0x3, 0x2, 0x6, 0x1, 0x0, 0x7, 0x8, 0x9, 0xA, 0xB};
@@ -48,6 +50,8 @@ void generateCodeTable(int *HUFFSIZE, int *HUFFCODE) {
     }
 }
 
+// Input HUFFSIZE, HUFFCODE, HUFFVAL, LASTK
+// Output EHUFCO, EHUFSI
 void generateEHUFCOandEHUFSI(int *HUFFSIZE, int *HUFFCODE, int *HUFFVAL, int *EHUFCO, int *EHUFSI,
  int LASTK) {
 
@@ -63,56 +67,3 @@ void generateEHUFCOandEHUFSI(int *HUFFSIZE, int *HUFFCODE, int *HUFFVAL, int *EH
         k++;
     } while (k < LASTK);
 }
-
-int main() {
-    int iHuffSizeCount = 0;
-    
-    for (int i = 0; i < 17; i++)
-        iHuffSizeCount += iBITS[i];
-    
-    int *iHUFFSIZE = new int[iHuffSizeCount];
-    
-    int iLASTK = generateSizeTable(iBITS, iHUFFSIZE);
-    
-    int *iHUFFCODE = new int[iHuffSizeCount];
-
-    generateCodeTable(iHUFFSIZE, iHUFFCODE);
-        
-
-    int *iEHUFCO = new int[iHuffSizeCount];
-    int *iEHUFSI = new int[iHuffSizeCount];
-
-    generateEHUFCOandEHUFSI(iHUFFSIZE, iHUFFCODE, iHUFFVAL, iEHUFCO, iEHUFSI, iLASTK);
-
-    cout << "HUFFSIZE: ";
-    for (int i = 0; i < iHuffSizeCount; i++)
-        cout << iHUFFSIZE[i] << " ";
-
-    cout << endl;
-
-    cout << "HUFFCODE: ";
-    for (int i = 0; i < iHuffSizeCount; i++)
-        cout << iHUFFCODE[i] << " ";
-
-    cout << endl;
-    
-    cout << "EHUFCO: ";
-    for (int i = 0; i < iHuffSizeCount; i++)
-        cout << iEHUFCO[i] << " ";
-
-    cout << endl;
-
-    cout << "EHUFSI: ";
-    for (int i = 0; i < iHuffSizeCount; i++)
-        cout << iEHUFSI[i] << " ";
- 
-    cout << endl;
-
-    cout << "LASTK: " << iLASTK << endl;
-    
-    delete[] iHUFFSIZE, iHUFFCODE, iEHUFCO, iEHUFSI;
-    
-    return 0;
-}
-
-
