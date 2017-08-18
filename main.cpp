@@ -1,6 +1,6 @@
 #include <iostream>
 #include "fopen.cpp"
-#include "decoder.cpp"
+#include "huffman.cpp"
 
 int main() {
 	fstream fs;
