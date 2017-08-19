@@ -6,26 +6,46 @@
 //  Copyright © 2017 MCUCSIE. All rights reserved.
 //
 
+#import <iostream>
 #import "ViewController.h"
 #import "DQTViewController.h"
 #import "DHTViewController.h"
 
 int iHeaderCount[256];
 
+NSSet *setValidHeader = [NSSet setWithObjects:
+                         @0xD8, // SOI
+                         @0xC0, // SOF
+                         @0xC4, // DHT
+                         @0xDA, // SOS
+                         @0xDB, // DQT
+                         @0xDD, // DRI
+                         @0xD0, // RST
+                         @0xD1, // RST
+                         @0xD2, // RST
+                         @0xD3, // RST
+                         @0xD4, // RST
+                         @0xD5, // RST
+                         @0xD6, // RST
+                         @0xD7, // RST
+                         @0xE1, // APP
+                         @0xD9, // EOI
+                         nil];
+
+
 @interface ViewController()
 
-@property (strong, nonatomic) NSSet *nsValidHeader;
-@property (strong, nonatomic) NSMutableDictionary *nmdContent;
+@property (strong, nonatomic) NSMutableDictionary *mdContent;
+@property (weak, nonatomic) NSOpenPanel *opPanel;
+@property (weak) IBOutlet NSImageView *ivTest;
 
-@property (weak) IBOutlet NSImageView *imvTest;
+@property (unsafe_unretained) IBOutlet NSTextView *tvSOF;
+@property (unsafe_unretained) IBOutlet NSTextView *tvSOS;
+@property (unsafe_unretained) IBOutlet NSTextView *tvDRI;
 
-@property (unsafe_unretained) IBOutlet NSTextView *tvSOF; //2
-@property (unsafe_unretained) IBOutlet NSTextView *tvSOS; //2
-@property (unsafe_unretained) IBOutlet NSTextView *tvDRI; //2
-
-@property (weak) IBOutlet NSTextField *tfFFD8; //2
-@property (weak) IBOutlet NSTextField *tfFFD9; //2
-@property (weak) IBOutlet NSTextField *tfFFD0; //20
+@property (weak) IBOutlet NSTextField *tfFFD8;
+@property (weak) IBOutlet NSTextField *tfFFD9;
+@property (weak) IBOutlet NSTextField *tfFFD0;
 @property (weak) IBOutlet NSTextField *tfFFD1;
 @property (weak) IBOutlet NSTextField *tfFFD2;
 @property (weak) IBOutlet NSTextField *tfFFD3;
@@ -33,8 +53,8 @@ int iHeaderCount[256];
 @property (weak) IBOutlet NSTextField *tfFFD5;
 @property (weak) IBOutlet NSTextField *tfFFD6;
 @property (weak) IBOutlet NSTextField *tfFFD7;
-@property (weak) IBOutlet NSTextField *tfFFF8; //1
-@property (weak) IBOutlet NSTextField *tfFFFA; //1
+@property (weak) IBOutlet NSTextField *tfFFF8;
+@property (weak) IBOutlet NSTextField *tfFFFA;
 @property (weak) IBOutlet NSTextField *tfFFE1;
 
 @end
@@ -48,51 +68,47 @@ int iHeaderCount[256];
     NSMenuItem *miOpen = [[miFile submenu] itemWithTitle: @"Open…"];
 
     [miOpen setTarget: self];
-    [miOpen setAction: @selector(Open:)];
-
-    self.nsValidHeader = [NSSet setWithObjects:
-                          @0xc0,
-                          @0xc4,
-                          @0xda,
-                          @0xdb,
-                          @0xdd,
-                          @0xd8,
-                          @0xd9,
-                          @0xd0,
-                          @0xd1,
-                          @0xd2,
-                          @0xd3,
-                          @0xd4,
-                          @0xd5,
-                          @0xd6,
-                          @0xd7,
-                          @0xf8,
-                          @0xfa,
-                          @0xe1, nil];
+    [miOpen setAction: @selector(pickAnImage)];
 
 }
 
-- (IBAction)Open:(id)sender {
+- (BOOL)validateMenuItem:(NSMenuItem *)menuItem {
+
+    NSWindowController *applicationController = [[[NSApplication sharedApplication] mainWindow] windowController];
+
+    if (applicationController == nil || self.opPanel != nil)
+        return NO;
+
+    return YES;
+}
+
+- (void)pickAnImage {
 
     for (int i = 0; i < 256; i++)
         iHeaderCount[i] = 0;
 
-    self.nmdContent = [[NSMutableDictionary alloc] initWithDictionary: @{@0xc0:@"", @0xc4:@"", @0xda:@"",@0xdb:@"",@0xdd:@"",}];
+    self.mdContent = [[NSMutableDictionary alloc] initWithDictionary: @{@0xc0:@"",
+                                                                        @0xc4:@"",
+                                                                        @0xda:@"",
+                                                                        @0xdb:@"",
+                                                                        @0xdd:@""}];
 
 
-    NSOpenPanel* panel = [NSOpenPanel openPanel];
+    self.opPanel = [NSOpenPanel openPanel];
 
     // This method displays the panel and returns immediately.
     // The completion handler is called when the user selects an
     // item or cancels the panel.
-    [panel beginWithCompletionHandler:^(NSInteger result){
+    __weak ViewController *weak_self = self;
+
+    [self.opPanel beginWithCompletionHandler:^(NSInteger result){
+
         if (result == NSFileHandlingPanelOKButton) {
-            NSURL*  theDoc = [[panel URLs] objectAtIndex:0];
+            NSURL*  theDoc = [[weak_self.opPanel URLs] objectAtIndex:0];
 
             NSLog(@"%@", theDoc);
 
-            [self.imvTest setImage:[[NSImage alloc]
-                               initWithContentsOfURL:theDoc]];
+            [self.ivTest setImage:[[NSImage alloc] initWithContentsOfURL:theDoc]];
 
 
             NSData *ndImage = [NSData dataWithContentsOfURL:theDoc];
@@ -106,7 +122,7 @@ int iHeaderCount[256];
                 if (bData[i - 1] != 0xff)
                     continue;
 
-                if ([self.nsValidHeader containsObject:[NSNumber numberWithUnsignedChar:bData[i]]]) {
+                if ([setValidHeader containsObject:[NSNumber numberWithUnsignedChar:bData[i]]]) {
 
                     int iLen = (bData[i+1] << 8) | (bData[i+2]);
                     bool bSkip = true;
@@ -115,7 +131,7 @@ int iHeaderCount[256];
                         case 0xc0: {
 
                             //Get LF, P, Y, X, Nf
-                            self.nmdContent[@0xc0] =  [self.nmdContent[@0xc0] stringByAppendingString:
+                            self.mdContent[@0xc0] =  [self.mdContent[@0xc0] stringByAppendingString:
                                                   [NSString stringWithFormat:
                                                    @"\r\rLF:%d  P:%d  Y:%d  X:%d  Nf:%d",
                                                    iLen, bData[i+3],
@@ -125,7 +141,7 @@ int iHeaderCount[256];
 
                             //Get Ci, Hi, Vi, Tqi
                             for (int j = 1, k = bData[i+8]; j <= k; j++)
-                                self.nmdContent[@0xc0] =  [self.nmdContent[@0xc0] stringByAppendingString:
+                                self.mdContent[@0xc0] =  [self.mdContent[@0xc0] stringByAppendingString:
                                                       [NSString stringWithFormat:
                                                        @" C%d:%d  H%d:%d  V%d:%d  Tq%d:%d",
                                                        j, bData[i+9 + (j-1)*3],
@@ -138,7 +154,7 @@ int iHeaderCount[256];
                         case 0xc4: {
 
                             //Get Lh
-                            self.nmdContent[@0xc4] = [self.nmdContent[@0xc4] stringByAppendingString:
+                            self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
                                                  [NSString stringWithFormat:@"\r\rLh:%d", iLen]];
 
                             int iPtr = (int)i + 2; //use a point to read data
@@ -147,7 +163,7 @@ int iHeaderCount[256];
                             while ((iPtr - i) < iLen) {
 
                                 //Get Tc, Th
-                                self.nmdContent[@0xc4] = [self.nmdContent[@0xc4] stringByAppendingString:
+                                self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
                                                      [NSString stringWithFormat:
                                                       @"\r\rTc:%d  Th:%d",
                                                       bData[iPtr+1] >> 4,
@@ -158,13 +174,13 @@ int iHeaderCount[256];
                                 for (int j = 1; j <= 16; j++) {
                                     iLi[j -1] = bData[iPtr +j];
 
-                                    self.nmdContent[@0xc4] = [self.nmdContent[@0xc4] stringByAppendingString:
+                                    self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
                                                          [NSString stringWithFormat:
                                                           @"  L%d:%d",
                                                           j, bData[iPtr +j]]];
                                 }
 
-                                self.nmdContent[@0xc4] = [self.nmdContent[@0xc4] stringByAppendingString:@"\r"];
+                                self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:@"\r"];
 
                                 iPtr += 16;
 
@@ -173,7 +189,7 @@ int iHeaderCount[256];
                                     iTemp = iLi[j];
 
                                     for (int k = 1; k <= iTemp; k++)
-                                        self.nmdContent[@0xc4] = [self.nmdContent[@0xc4] stringByAppendingString:
+                                        self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
                                                              [NSString stringWithFormat:
                                                               @"V(%d,%d):%d  ",
                                                               j +1, k, bData[iPtr +k]]];
@@ -187,7 +203,7 @@ int iHeaderCount[256];
                         case 0xda: {
 
                             //Get Ls, Ns
-                            self.nmdContent[@0xda] = [self.nmdContent[@0xda] stringByAppendingString:
+                            self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
                                                  [NSString stringWithFormat:
                                                   @"\r\rLs:%d  Ns:%d", iLen, bData[i +3]]];
 
@@ -195,7 +211,7 @@ int iHeaderCount[256];
 
                             //Get Cs, Td, Ta
                             for (int j = 1; j <= iTemp; j++)
-                                self.nmdContent[@0xda] = [self.nmdContent[@0xda] stringByAppendingString:
+                                self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
                                                      [NSString stringWithFormat:
                                                       @"  Cs%d:%d  Td%d:%d  Ta%d:%d",
                                                       j, bData[i +4 + (j-1)*2],
@@ -203,7 +219,7 @@ int iHeaderCount[256];
                                                       j, bData[i +5 + (j-1)*2] & 0x0f]];
 
                             //Get Ss, Se, Ah, Al
-                            self.nmdContent[@0xda] = [self.nmdContent[@0xda] stringByAppendingString:
+                            self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
                                                  [NSString stringWithFormat:
                                                   @"  Ss:%d  Se:%d  Ah:%d  Al:%d",
                                                   bData[i + 4 + iTemp * 2],
@@ -217,7 +233,7 @@ int iHeaderCount[256];
                         case 0xdb: {
 
                             //Get Lq
-                            self.nmdContent[@0xdb] = [self.nmdContent[@0xdb] stringByAppendingString:
+                            self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
                                                  [NSString stringWithFormat:
                                                   @"\r\rLq:%d",
                                                   iLen]];
@@ -227,7 +243,7 @@ int iHeaderCount[256];
                             while ((iPtr - i) < iLen) {
 
                                 //Get Pq, Tq
-                                self.nmdContent[@0xdb] = [self.nmdContent[@0xdb] stringByAppendingString:
+                                self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
                                                      [NSString stringWithFormat:
                                                       @"\r\rPq:%d  Tq:%d\r",
                                                       bData[iPtr +1] >> 4,
@@ -240,14 +256,14 @@ int iHeaderCount[256];
                                 for (int j = 0; j < 64; j++) {
 
                                     if (!iTemp) {
-                                        self.nmdContent[@0xdb] = [self.nmdContent[@0xdb] stringByAppendingString:
+                                        self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
                                                              [NSString stringWithFormat:
                                                               @"Q%d:%d  ",
                                                               j, bData[iPtr +1]]];
                                         iPtr++;
                                     }
                                     else {
-                                        self.nmdContent[@0xdb] = [self.nmdContent[@0xdb] stringByAppendingString:
+                                        self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
                                                              [NSString stringWithFormat:
                                                               @"Q%d:%d  ",
                                                               j,
@@ -266,7 +282,7 @@ int iHeaderCount[256];
                         case 0xdd: {
 
                             //Get Lr, Ri
-                            self.nmdContent[@0xdd] = [self.nmdContent[@0xdd] stringByAppendingString:
+                            self.mdContent[@0xdd] = [self.mdContent[@0xdd] stringByAppendingString:
                                                  [NSString stringWithFormat:
                                                   @"\r\rLr:%d  Ri:%d",
                                                   iLen,
@@ -299,15 +315,15 @@ int iHeaderCount[256];
             DHTViewController *DHTViewController = [self.parentViewController childViewControllers][2] ;
             NSTextView *tvDHT = DHTViewController.tvDHT;
 
-            [tvDHT setString:[NSString stringWithFormat:@"FFc4 Marker Count:%d%@", iHeaderCount[0xc4], self.nmdContent[@0xc4]]];
+            [tvDHT setString:[NSString stringWithFormat:@"FFc4 Marker Count:%d%@", iHeaderCount[0xc4], self.mdContent[@0xc4]]];
 
-            [tvDQT setString:[NSString stringWithFormat:@"FFdb Marker Count:%d%@", iHeaderCount[0xdb], self.nmdContent[@0xdb]]];
+            [tvDQT setString:[NSString stringWithFormat:@"FFdb Marker Count:%d%@", iHeaderCount[0xdb], self.mdContent[@0xdb]]];
 
-            [self.tvSOF setString:[NSString stringWithFormat:@"FFc0 Marker Count:%d%@", iHeaderCount[0xc0], self.nmdContent[@0xc0]]];
+            [self.tvSOF setString:[NSString stringWithFormat:@"FFc0 Marker Count:%d%@", iHeaderCount[0xc0], self.mdContent[@0xc0]]];
 
-            [self.tvSOS setString:[NSString stringWithFormat:@"FFda Marker Count:%d%@", iHeaderCount[0xda], self.nmdContent[@0xda]]];
+            [self.tvSOS setString:[NSString stringWithFormat:@"FFda Marker Count:%d%@", iHeaderCount[0xda], self.mdContent[@0xda]]];
 
-            [self.tvDRI setString:[NSString stringWithFormat:@"FFdd Marker Count:%d%@", iHeaderCount[0xdd], self.nmdContent[@0xdd]]];
+            [self.tvDRI setString:[NSString stringWithFormat:@"FFdd Marker Count:%d%@", iHeaderCount[0xdd], self.mdContent[@0xdd]]];
 
             [self.tfFFD8 setStringValue:[NSString stringWithFormat:@"FFD8 Marker Count:%d", iHeaderCount[0xd8]]];
             [self.tfFFD8 sizeToFit];
