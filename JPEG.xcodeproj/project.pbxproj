@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		2D0260381F478E6A0092C27F /* DQTViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D0260371F478E6A0092C27F /* DQTViewController.m */; };
 		2D02603E1F4797BC0092C27F /* DHTViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D02603D1F4797BC0092C27F /* DHTViewController.m */; };
+		2D1E10B01F495B3C00F22C32 /* fopen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D1E10AE1F495B3C00F22C32 /* fopen.cpp */; };
+		2D1E10B11F495B3C00F22C32 /* huffman.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D1E10AF1F495B3C00F22C32 /* huffman.cpp */; };
 		2D8532C91F474705001AE863 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D8532C81F474705001AE863 /* AppDelegate.m */; };
 		2D8532CC1F474705001AE863 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D8532CB1F474705001AE863 /* main.m */; };
 		2D8532CF1F474705001AE863 /* ViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D8532CE1F474705001AE863 /* ViewController.mm */; };
@@ -21,6 +23,8 @@
 		2D0260371F478E6A0092C27F /* DQTViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DQTViewController.m; sourceTree = "<group>"; };
 		2D02603C1F4797BC0092C27F /* DHTViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DHTViewController.h; sourceTree = "<group>"; };
 		2D02603D1F4797BC0092C27F /* DHTViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DHTViewController.m; sourceTree = "<group>"; };
+		2D1E10AE1F495B3C00F22C32 /* fopen.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = fopen.cpp; sourceTree = "<group>"; };
+		2D1E10AF1F495B3C00F22C32 /* huffman.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = huffman.cpp; sourceTree = "<group>"; };
 		2D8532C41F474705001AE863 /* JPEG.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JPEG.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D8532C71F474705001AE863 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		2D8532C81F474705001AE863 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -43,10 +47,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2D1E10AD1F495B1400F22C32 /* C++File */ = {
+			isa = PBXGroup;
+			children = (
+				2D1E10AE1F495B3C00F22C32 /* fopen.cpp */,
+				2D1E10AF1F495B3C00F22C32 /* huffman.cpp */,
+			);
+			name = "C++File";
+			sourceTree = "<group>";
+		};
 		2D8532BB1F474705001AE863 = {
 			isa = PBXGroup;
 			children = (
 				2D8532C61F474705001AE863 /* JPEG */,
+				2D1E10AD1F495B1400F22C32 /* C++File */,
 				2D8532C51F474705001AE863 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -157,8 +171,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2D1E10B01F495B3C00F22C32 /* fopen.cpp in Sources */,
 				2D8532CF1F474705001AE863 /* ViewController.mm in Sources */,
 				2D02603E1F4797BC0092C27F /* DHTViewController.m in Sources */,
+				2D1E10B11F495B3C00F22C32 /* huffman.cpp in Sources */,
 				2D8532CC1F474705001AE863 /* main.m in Sources */,
 				2D0260381F478E6A0092C27F /* DQTViewController.m in Sources */,
 				2D8532C91F474705001AE863 /* AppDelegate.m in Sources */,
