@@ -1,3 +1,11 @@
+//
+//  reader.h
+//  JPEG
+//
+//  Created by MCUCSIE on 8/20/17.
+//  Copyright © 2017 MCUCSIE. All rights reserved.
+//
+#include <iostream>
 #include <fstream>
 #include <vector>
 #include <set>
@@ -22,33 +30,8 @@ using namespace std;
 
 #define COM 0xFE
 
-set<unsigned char> setMarkers = {
-    0x01,          // TEM
-    // 0X02 ~ 0xBF // RES
-
-    0xC0,          // SOF
-    0xC4,          // DHT
-    0xCC,          // DAC
-
-    0xD8,          // SOI
-    0xD9,          // EOI
-
-    0xDA,          // SOS
-    0xDB,          // DQT
-    0xDC,          // DNL
-    0xDD,          // DRI
-    0xDE,          // DHP
-    0xDF,          // EXP
-
-    // 0xD0 ~ 0xD7 // RST
-    // 0xE0 ~ 0xEF // APP
-    // 0xF0 ~ 0xFD // JPG
-
-    0xFE,          // COM
-};
-
 /*****************************************************************************************************/
-// 
+//
 // Structs used to read data and overriding operators to convenience using these structs
 //
 /*****************************************************************************************************/
@@ -60,6 +43,8 @@ struct ComponentParameter {
     unsigned char Tqi;
 };
 
+istream& operator>> (istream& s, ComponentParameter& val);
+
 struct FrameHeader {
     unsigned char marker = SOF;
     unsigned short Lf;
@@ -68,14 +53,9 @@ struct FrameHeader {
     unsigned short X;
     unsigned char Nf;
     vector<ComponentParameter> componentParameters;
+};
 
-
-} frameHeader;
-
-istream& operator>> (istream& s, FrameHeader& val) {
-    
-    return s;
-}
+istream& operator>> (istream& s, FrameHeader& val);
 
 /*******************************************************************************************************/
 
@@ -84,6 +64,8 @@ struct ScanComponentParameter {
     unsigned char Tdj;
     unsigned char Taj;
 };
+
+istream& operator>> (istream& s, ScanComponentParameter& val);
 
 struct ScanHeader {
     unsigned char marker = SOS;
@@ -96,7 +78,7 @@ struct ScanHeader {
     unsigned char Al;
 };
 
-vector<ScanHeader> scanHeaders;
+istream& operator>> (istream& s, ScanHeader& val);
 
 /*******************************************************************************************************/
 
@@ -110,7 +92,7 @@ struct QuantizationTable {
     unsigned char marker = DQT;
     unsigned short Lq;
     vector<QuantizationParameter> quantizationParameters;
-} quantizationTable;
+};
 
 /*******************************************************************************************************/
 
@@ -125,8 +107,8 @@ struct HuffmanTable {
     unsigned char marker = DHT;
     unsigned short Lh;
     vector<HuffmanParameter> huffmanParameters;
-    
-} huffmanTable;
+
+};
 
 /*******************************************************************************************************/
 
@@ -150,11 +132,9 @@ struct RestartInterval {
     unsigned short Ri;
 };
 
-vector<RestartInterval> restartInterval;
-
 /*******************************************************************************************************/
 
-struct Comment {
+struct CommentSegment {
     unsigned char marker = COM;
     unsigned short Lc;
     vector<unsigned char> Cmi;

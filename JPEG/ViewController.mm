@@ -7,9 +7,14 @@
 //
 
 #import <iostream>
+#import "reader.h"
 #import "ViewController.h"
 #import "DQTViewController.h"
 #import "DHTViewController.h"
+
+extern set<unsigned char> setMarkers;
+vector<FrameHeader> frameHeaders;
+vector<ScanHeader> scanHeaders;
 
 int iHeaderCount[256];
 
@@ -31,6 +36,7 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                          @0xE1, // APP
                          @0xD9, // EOI
                          nil];
+
 
 
 @interface ViewController()
@@ -93,7 +99,6 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                                                                         @0xdb:@"",
                                                                         @0xdd:@""}];
 
-
     self.opPanel = [NSOpenPanel openPanel];
 
     // This method displays the panel and returns immediately.
@@ -110,6 +115,101 @@ NSSet *setValidHeader = [NSSet setWithObjects:
 
             [self.ivTest setImage:[[NSImage alloc] initWithContentsOfURL:theDoc]];
 
+#warning remove
+            fstream fs;
+            fs.open([theDoc.path UTF8String], fstream::in | fstream::out);
+            fs.unsetf(fstream::skipws);
+
+            unsigned char cMarker;
+            cMarker = [self interpretMarkersWithStream:fs];
+
+            if (cMarker != SOI) return;
+
+            while ((cMarker = [self interpretMarkersWithStream:fs]) && cMarker != EOI) {
+
+                switch (cMarker) {
+                    case SOF: {
+                        FrameHeader frameHeader;
+                        fs >> frameHeader;
+                        frameHeaders.push_back(frameHeader);
+
+                        //Get LF, P, Y, X, Nf
+                        self.mdContent[@0xc0] =  [self.mdContent[@0xc0] stringByAppendingString:
+                                                  [NSString stringWithFormat:
+                                                   @"\r\rLF:%d  P:%d  Y:%d  X:%d  Nf:%d",
+                                                   frameHeader.Lf,
+                                                   frameHeader.P,
+                                                   frameHeader.Y,
+                                                   frameHeader.X,
+                                                   frameHeader.Nf]];
+
+                        //Get Ci, Hi, Vi, Tqi
+                        vector<ComponentParameter> components = frameHeader.componentParameters;
+
+                        for (int j = 0; j < components.size(); j++)
+                            self.mdContent[@0xc0] =  [self.mdContent[@0xc0] stringByAppendingString:
+                                                      [NSString stringWithFormat:
+                                                       @" C%d:%d  H%d:%d  V%d:%d  Tq%d:%d",
+                                                       j, components[j].Ci,
+                                                       j, components[j].Hi,
+                                                       j, components[j].Vi,
+                                                       j, components[j].Tqi]];
+                    }
+                        break;
+
+                    case SOS: {
+                        ScanHeader scanHeader;
+                        fs >> scanHeader;
+
+                        scanHeaders.push_back(scanHeader);
+
+                        //Get Ls, Ns
+                        self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
+                                                 [NSString stringWithFormat:
+                                                  @"\r\rLs:%d  Ns:%d",
+                                                  scanHeader.Ls,
+                                                  scanHeader.Ns]];
+
+                      //                                                  iLen,
+                      //                                                  bData[i +3]]];
+
+                        vector<ScanComponentParameter> scanComponents = scanHeader.scanComponentParameters;
+
+//                      int iTemp = bData[i +3];
+
+                      //Get Cs, Td, Ta
+                      for (int j = 0; j < scanComponents.size(); j++)
+                          self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
+                                                   [NSString stringWithFormat:
+                                                    @"  Cs%d:%d  Td%d:%d  Ta%d:%d",
+                                                    j+1, scanComponents[j].Csj,
+                                                    j+1, scanComponents[j].Tdj,
+                                                    j+1, scanComponents[j].Taj]];
+
+//                                                j, bData[i +4 + (j-1)*2],
+//                                                j, bData[i +5 + (j-1)*2] >> 4,
+//                                                j, bData[i +5 + (j-1)*2] & 0x0f]];
+
+                      //Get Ss, Se, Ah, Al
+                      self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
+                                               [NSString stringWithFormat:
+                                                @"  Ss:%d  Se:%d  Ah:%d  Al:%d",
+                                                scanHeader.Ss,
+                                                scanHeader.Se,
+                                                scanHeader.Ah,
+                                                scanHeader.Al]];
+//                                                bData[i + 4 + iTemp * 2],
+//                                                bData[i + 5 + iTemp * 2],
+//                                                bData[i + 6 + iTemp * 2] >> 4,
+//                                                bData[i + 6 + iTemp * 2] & 0x0f]];
+
+
+                    }
+
+                    default:
+                        break;
+                }
+            }
 
             NSData *ndImage = [NSData dataWithContentsOfURL:theDoc];
 
@@ -129,25 +229,6 @@ NSSet *setValidHeader = [NSSet setWithObjects:
 
                     switch (bData[i]) {
                         case 0xc0: {
-
-                            //Get LF, P, Y, X, Nf
-                            self.mdContent[@0xc0] =  [self.mdContent[@0xc0] stringByAppendingString:
-                                                  [NSString stringWithFormat:
-                                                   @"\r\rLF:%d  P:%d  Y:%d  X:%d  Nf:%d",
-                                                   iLen, bData[i+3],
-                                                   (bData[i+4] << 8) | (bData[i+5]),
-                                                   (bData[i+6] << 8) | (bData[i+7]),
-                                                   bData[i+8]]];
-
-                            //Get Ci, Hi, Vi, Tqi
-                            for (int j = 1, k = bData[i+8]; j <= k; j++)
-                                self.mdContent[@0xc0] =  [self.mdContent[@0xc0] stringByAppendingString:
-                                                      [NSString stringWithFormat:
-                                                       @" C%d:%d  H%d:%d  V%d:%d  Tq%d:%d",
-                                                       j, bData[i+9 + (j-1)*3],
-                                                       j, bData[i+10 + (j-1)*3] >> 4,
-                                                       j, bData[i+10 + (j-1)*3] & 0x0f,
-                                                       j, bData[i+11 + (j-1)*3]]];
                         }
                             break;
 
@@ -201,32 +282,6 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                             break;
 
                         case 0xda: {
-
-                            //Get Ls, Ns
-                            self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
-                                                 [NSString stringWithFormat:
-                                                  @"\r\rLs:%d  Ns:%d", iLen, bData[i +3]]];
-
-                            int iTemp = bData[i +3];
-
-                            //Get Cs, Td, Ta
-                            for (int j = 1; j <= iTemp; j++)
-                                self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
-                                                     [NSString stringWithFormat:
-                                                      @"  Cs%d:%d  Td%d:%d  Ta%d:%d",
-                                                      j, bData[i +4 + (j-1)*2],
-                                                      j, bData[i +5 + (j-1)*2] >> 4,
-                                                      j, bData[i +5 + (j-1)*2] & 0x0f]];
-
-                            //Get Ss, Se, Ah, Al
-                            self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
-                                                 [NSString stringWithFormat:
-                                                  @"  Ss:%d  Se:%d  Ah:%d  Al:%d",
-                                                  bData[i + 4 + iTemp * 2],
-                                                  bData[i + 5 + iTemp * 2],
-                                                  bData[i + 6 + iTemp * 2] >> 4,
-                                                  bData[i + 6 + iTemp * 2] & 0x0f]];
-
                         }
                             break;
 
@@ -371,6 +426,26 @@ NSSet *setValidHeader = [NSSet setWithObjects:
         }
         
     }];
+}
+
+- (unsigned char)interpretMarkersWithStream:(fstream&) fs {
+    unsigned char cFF, cMarker;
+
+    fs >> cFF;
+
+    while (fs >> cMarker) {
+        if (cFF != 0xFF) {
+            cFF = cMarker;
+            continue;
+        }
+
+        if (setMarkers.count(cMarker))
+            break;
+
+        cFF = cMarker;
+    }
+
+    return cMarker;
 }
 
 @end
