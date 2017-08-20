@@ -88,11 +88,15 @@ struct QuantizationParameter {
     unsigned short Qk[64];
 };
 
+istream& operator>> (istream& s, QuantizationParameter& val);
+
 struct QuantizationTable {
     unsigned char marker = DQT;
     unsigned short Lq;
     vector<QuantizationParameter> quantizationParameters;
 };
+
+istream& operator>> (istream& s, QuantizationTable& val);
 
 /*******************************************************************************************************/
 

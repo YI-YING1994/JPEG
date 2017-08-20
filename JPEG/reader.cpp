@@ -38,7 +38,6 @@ set<unsigned char> setMarkers = {
 /*****************************************************************************************************/
 
 istream& operator>> (istream& s, ComponentParameter& val) {
-
     s >> val.Ci;
 
     unsigned char temp;
@@ -52,6 +51,8 @@ istream& operator>> (istream& s, ComponentParameter& val) {
 }
 
 istream& operator>> (istream& s, FrameHeader& val) {
+
+    // Use 8 unsigned char to tempily store data which need to compute later
     unsigned char temp[8];
 
     for (int i = 0; i < 8; i++)
@@ -92,6 +93,8 @@ istream& operator>> (istream& s, ScanComponentParameter& val) {
 }
 
 istream& operator>> (istream& s, ScanHeader& val) {
+
+    // Use 2 unsigned char to tempily store data which need to compute later
     unsigned char temp[2];
 
     s >> temp[0] >> temp[1];
@@ -107,7 +110,6 @@ istream& operator>> (istream& s, ScanHeader& val) {
         val.scanComponentParameters.push_back(scanComponent);
     }
 
-    cout << s.tellg() << endl;
     s >> val.Ss >> val.Se >> temp[0];
 
     val.Ah = temp[0] >> 4;
@@ -116,4 +118,67 @@ istream& operator>> (istream& s, ScanHeader& val) {
     return s;
 }
 
+/*****************************************************************************************************/
+//
+// Operator>> function for QuantizationTable and QuantizationParameter
+//
+/*****************************************************************************************************/
+
+istream& operator>> (istream& s, QuantizationParameter& val) {
+
+    // Use 2 unsigned char to tempily store data which need to compute later
+    unsigned char temp[2];
+
+    s >> temp[0];
+
+    val.Pq = temp[0] >> 4;
+    val.Tq = temp[0] & 0x0F;
+
+    for (int i = 0; i < 64; i++) {
+
+        // if precision is 16 bits, read two bytes into temp buffer
+        if (val.Pq) {
+            s >> temp[0] >> temp[1];
+            val.Qk[i] = (temp[0] << 8) + temp[1];
+        }
+
+        // if precision is 8 bits, read one bytes into temp buffer
+        // Note: Qk is unsigned short, so need to read data into temp buffer
+        //       before store data into Qk
+        else {
+            s >> temp[0];
+            val.Qk[i] = temp[0];
+        }
+    }
+
+    return s;
+}
+
+istream& operator>> (istream& s, QuantizationTable& val) {
+
+    // Use 2 unsigned char to tempily store data which need to compute later
+    unsigned char temp[2];
+
+    s >> temp[0] >> temp[1];
+
+    val.Lq = (temp[0] << 8) + temp[1];
+
+    // Get Quantization Table's range
+    long long int i = s.tellg();
+    long long int end = i + val.Lq - 2;
+    QuantizationParameter parameter;
+
+    while (i < end) {
+        s >> parameter;
+        val.quantizationParameters.push_back(parameter);
+        i = s.tellg();
+    }
+
+    return s;
+}
+
+/*****************************************************************************************************/
+//
+// Operator>> function for HuffmanTable and HuffmanParameter
+//
 /*****************************************************************************************************/

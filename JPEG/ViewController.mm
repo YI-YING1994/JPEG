@@ -13,8 +13,10 @@
 #import "DHTViewController.h"
 
 extern set<unsigned char> setMarkers;
+
 vector<FrameHeader> frameHeaders;
 vector<ScanHeader> scanHeaders;
+vector<QuantizationTable> quantizationTables;
 
 int iHeaderCount[256];
 
@@ -170,12 +172,7 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                                                   scanHeader.Ls,
                                                   scanHeader.Ns]];
 
-                      //                                                  iLen,
-                      //                                                  bData[i +3]]];
-
                         vector<ScanComponentParameter> scanComponents = scanHeader.scanComponentParameters;
-
-//                      int iTemp = bData[i +3];
 
                       //Get Cs, Td, Ta
                       for (int j = 0; j < scanComponents.size(); j++)
@@ -186,10 +183,6 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                                                     j+1, scanComponents[j].Tdj,
                                                     j+1, scanComponents[j].Taj]];
 
-//                                                j, bData[i +4 + (j-1)*2],
-//                                                j, bData[i +5 + (j-1)*2] >> 4,
-//                                                j, bData[i +5 + (j-1)*2] & 0x0f]];
-
                       //Get Ss, Se, Ah, Al
                       self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
                                                [NSString stringWithFormat:
@@ -198,14 +191,46 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                                                 scanHeader.Se,
                                                 scanHeader.Ah,
                                                 scanHeader.Al]];
-//                                                bData[i + 4 + iTemp * 2],
-//                                                bData[i + 5 + iTemp * 2],
-//                                                bData[i + 6 + iTemp * 2] >> 4,
-//                                                bData[i + 6 + iTemp * 2] & 0x0f]];
 
 
                     }
+                        break;
 
+                    case DQT: {
+                        QuantizationTable quantizationTable;
+                        fs >> quantizationTable;
+                        quantizationTables.push_back(quantizationTable);
+
+                        //Get Lq
+                        self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
+                                                 [NSString stringWithFormat:
+                                                  @"\r\rLq:%d",
+                                                  quantizationTable.Lq]];
+
+                        vector<QuantizationParameter> parameters = quantizationTable.quantizationParameters;
+
+                        for (int i = 0; i < parameters.size(); i++) {
+
+                            //Get Pq, Tq
+                            self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
+                                                     [NSString stringWithFormat:
+                                                      @"\r\rPq:%d  Tq:%d\r",
+                                                      parameters[i].Pq,
+                                                      parameters[i].Tq]];
+
+                            //Get Qk
+                            for (int j = 0; j < 64; j++) {
+
+                                self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
+                                                         [NSString stringWithFormat:
+                                                          @"Q%d:%d  ",
+                                                          j, parameters[i].Qk[j]]];
+                            }
+                            
+                        }
+                        
+                    }
+                        break;
                     default:
                         break;
                 }
@@ -228,9 +253,6 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                     bool bSkip = true;
 
                     switch (bData[i]) {
-                        case 0xc0: {
-                        }
-                            break;
 
                         case 0xc4: {
 
@@ -281,57 +303,7 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                         }
                             break;
 
-                        case 0xda: {
-                        }
-                            break;
-
-                        case 0xdb: {
-
-                            //Get Lq
-                            self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
-                                                 [NSString stringWithFormat:
-                                                  @"\r\rLq:%d",
-                                                  iLen]];
-
-                            int iPtr = (int)i + 2;
-                            int iTemp;
-                            while ((iPtr - i) < iLen) {
-
-                                //Get Pq, Tq
-                                self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
-                                                     [NSString stringWithFormat:
-                                                      @"\r\rPq:%d  Tq:%d\r",
-                                                      bData[iPtr +1] >> 4,
-                                                      bData[iPtr +1] & 0x0f]];
-
-                                iPtr++;
-                                iTemp = bData[iPtr +1] >> 4;
-
-                                //Get Qk
-                                for (int j = 0; j < 64; j++) {
-
-                                    if (!iTemp) {
-                                        self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
-                                                             [NSString stringWithFormat:
-                                                              @"Q%d:%d  ",
-                                                              j, bData[iPtr +1]]];
-                                        iPtr++;
-                                    }
-                                    else {
-                                        self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
-                                                             [NSString stringWithFormat:
-                                                              @"Q%d:%d  ",
-                                                              j,
-                                                              (bData[iPtr +1] << 8) | (bData[iPtr +2])]];
-                                        iPtr += 2;
-
-                                    }
-
-                                }
-
-                            }
-
-                        }
+                        case 0xdb:
                             break;
 
                         case 0xdd: {
@@ -363,6 +335,7 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                 }
 
             }
+
 
             DQTViewController *DQTViewController = [self.parentViewController childViewControllers][1] ;
             NSTextView *tvDQT = DQTViewController.tvDQT;
