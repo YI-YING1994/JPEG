@@ -104,8 +104,10 @@ struct HuffmanParameter {
     unsigned char Tc;
     unsigned char Th;
     unsigned char Li[16];
-    vector<unsigned char> Vij;
+    vector<unsigned char> Vij[16];
 };
+
+istream& operator>> (istream& s, HuffmanParameter& val);
 
 struct HuffmanTable {
     unsigned char marker = DHT;
@@ -113,6 +115,8 @@ struct HuffmanTable {
     vector<HuffmanParameter> huffmanParameters;
 
 };
+
+istream& operator>> (istream& s, HuffmanTable& val);
 
 /*******************************************************************************************************/
 

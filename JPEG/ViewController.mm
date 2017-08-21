@@ -17,6 +17,7 @@ extern set<unsigned char> setMarkers;
 vector<FrameHeader> frameHeaders;
 vector<ScanHeader> scanHeaders;
 vector<QuantizationTable> quantizationTables;
+vector<HuffmanTable> huffmanTables;
 
 int iHeaderCount[256];
 
@@ -111,6 +112,11 @@ NSSet *setValidHeader = [NSSet setWithObjects:
     [self.opPanel beginWithCompletionHandler:^(NSInteger result){
 
         if (result == NSFileHandlingPanelOKButton) {
+            frameHeaders.clear();
+            scanHeaders.clear();
+            quantizationTables.clear();
+            huffmanTables.clear();
+
             NSURL*  theDoc = [[weak_self.opPanel URLs] objectAtIndex:0];
 
             NSLog(@"%@", theDoc);
@@ -231,6 +237,55 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                         
                     }
                         break;
+
+                    case DHT: {
+                        HuffmanTable huffmanTable;
+                        fs >> huffmanTable;
+                        huffmanTables.push_back(huffmanTable);
+
+                        //Get Lh
+                        self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+                                                 [NSString stringWithFormat:@"\r\rLh:%d",
+                                                  huffmanTable.Lh]];
+
+                        vector<HuffmanParameter> huffmanParameter = huffmanTable.huffmanParameters;
+
+
+                        for (int j = 0; j < huffmanParameter.size(); j++) {
+
+                            //Get Tc, Th
+                            self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+                                                     [NSString stringWithFormat:
+                                                      @"\r\rTc: %d  Th: %d",
+                                                      huffmanParameter[j].Tc,
+                                                      huffmanParameter[j].Th]];
+
+                            self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:@"\rL: "];
+
+                            //Get Li
+                            for (int k = 0; k < 16; k++) {
+
+                                self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+                                                         [NSString stringWithFormat:
+                                                          @" %d",
+                                                        huffmanParameter[j].Li[k]]];
+                            }
+
+                            self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:@"\rV: "];
+
+                            //Get V(i,j)
+                            for (int k = 0; k < 16; k++)
+                                for (int m = 0; m < huffmanParameter[j].Li[k]; m++)
+
+                                    self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+                                                             [NSString stringWithFormat:
+                                                              @"%X  ",
+                                                              huffmanParameter[j].Vij[k][m]]];
+                        }
+
+
+                    }
+                        break;
                     default:
                         break;
                 }
@@ -254,53 +309,7 @@ NSSet *setValidHeader = [NSSet setWithObjects:
 
                     switch (bData[i]) {
 
-                        case 0xc4: {
-
-                            //Get Lh
-                            self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
-                                                 [NSString stringWithFormat:@"\r\rLh:%d", iLen]];
-
-                            int iPtr = (int)i + 2; //use a point to read data
-                            static int iLi[16];
-                            int iTemp;
-                            while ((iPtr - i) < iLen) {
-
-                                //Get Tc, Th
-                                self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
-                                                     [NSString stringWithFormat:
-                                                      @"\r\rTc:%d  Th:%d",
-                                                      bData[iPtr+1] >> 4,
-                                                      bData[iPtr+1] & 0x0f]];
-                                iPtr++;
-
-                                //Get Li
-                                for (int j = 1; j <= 16; j++) {
-                                    iLi[j -1] = bData[iPtr +j];
-
-                                    self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
-                                                         [NSString stringWithFormat:
-                                                          @"  L%d:%d",
-                                                          j, bData[iPtr +j]]];
-                                }
-
-                                self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:@"\r"];
-
-                                iPtr += 16;
-
-                                //Get V(i,j)
-                                for (int j = 0; j < 16; j++) {
-                                    iTemp = iLi[j];
-
-                                    for (int k = 1; k <= iTemp; k++)
-                                        self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
-                                                             [NSString stringWithFormat:
-                                                              @"V(%d,%d):%d  ",
-                                                              j +1, k, bData[iPtr +k]]];
-                                    iPtr += iTemp;
-                                }
-
-                            }
-                        }
+                        case 0xc4:
                             break;
 
                         case 0xdb:
@@ -343,59 +352,58 @@ NSSet *setValidHeader = [NSSet setWithObjects:
             DHTViewController *DHTViewController = [self.parentViewController childViewControllers][2] ;
             NSTextView *tvDHT = DHTViewController.tvDHT;
 
-            [tvDHT setString:[NSString stringWithFormat:@"FFc4 Marker Count:%d%@", iHeaderCount[0xc4], self.mdContent[@0xc4]]];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [tvDHT setString:[NSString stringWithFormat:@"FFc4 Marker Count:%d%@", iHeaderCount[0xc4], self.mdContent[@0xc4]]];
 
-            [tvDQT setString:[NSString stringWithFormat:@"FFdb Marker Count:%d%@", iHeaderCount[0xdb], self.mdContent[@0xdb]]];
+                [tvDQT setString:[NSString stringWithFormat:@"FFdb Marker Count:%d%@", iHeaderCount[0xdb], self.mdContent[@0xdb]]];
 
-            [self.tvSOF setString:[NSString stringWithFormat:@"FFc0 Marker Count:%d%@", iHeaderCount[0xc0], self.mdContent[@0xc0]]];
+                [self.tvSOF setString:[NSString stringWithFormat:@"FFc0 Marker Count:%d%@", iHeaderCount[0xc0], self.mdContent[@0xc0]]];
 
-            [self.tvSOS setString:[NSString stringWithFormat:@"FFda Marker Count:%d%@", iHeaderCount[0xda], self.mdContent[@0xda]]];
+                [self.tvSOS setString:[NSString stringWithFormat:@"FFda Marker Count:%d%@", iHeaderCount[0xda], self.mdContent[@0xda]]];
 
-            [self.tvDRI setString:[NSString stringWithFormat:@"FFdd Marker Count:%d%@", iHeaderCount[0xdd], self.mdContent[@0xdd]]];
+                [self.tvDRI setString:[NSString stringWithFormat:@"FFdd Marker Count:%d%@", iHeaderCount[0xdd], self.mdContent[@0xdd]]];
 
-            [self.tfFFD8 setStringValue:[NSString stringWithFormat:@"FFD8 Marker Count:%d", iHeaderCount[0xd8]]];
-            [self.tfFFD8 sizeToFit];
+                [self.tfFFD8 setStringValue:[NSString stringWithFormat:@"FFD8 Marker Count:%d", iHeaderCount[0xd8]]];
+                [self.tfFFD8 sizeToFit];
 
-            [self.tfFFD9 setStringValue:[NSString stringWithFormat:@"FFD9 Marker Count:%d", iHeaderCount[0xd9]]];
-            [self.tfFFD9 sizeToFit];
+                [self.tfFFD9 setStringValue:[NSString stringWithFormat:@"FFD9 Marker Count:%d", iHeaderCount[0xd9]]];
+                [self.tfFFD9 sizeToFit];
 
-            [self.tfFFD0 setStringValue:[NSString stringWithFormat:@"FFD0 Marker Count:%d", iHeaderCount[0xd0]]];
-            [self.tfFFD0 sizeToFit];
+                [self.tfFFD0 setStringValue:[NSString stringWithFormat:@"FFD0 Marker Count:%d", iHeaderCount[0xd0]]];
+                [self.tfFFD0 sizeToFit];
 
-            [self.tfFFD1 setStringValue:[NSString stringWithFormat:@"FFD1 Marker Count:%d", iHeaderCount[0xd1]]];
-            [self.tfFFD1 sizeToFit];
+                [self.tfFFD1 setStringValue:[NSString stringWithFormat:@"FFD1 Marker Count:%d", iHeaderCount[0xd1]]];
+                [self.tfFFD1 sizeToFit];
 
-            [self.tfFFD2 setStringValue:[NSString stringWithFormat:@"FFD2 Marker Count:%d", iHeaderCount[0xd2]]];
-            [self.tfFFD2 sizeToFit];
+                [self.tfFFD2 setStringValue:[NSString stringWithFormat:@"FFD2 Marker Count:%d", iHeaderCount[0xd2]]];
+                [self.tfFFD2 sizeToFit];
 
-            [self.tfFFD3 setStringValue:[NSString stringWithFormat:@"FFD3 Marker Count:%d", iHeaderCount[0xd3]]];
-            [self.tfFFD3 sizeToFit];
+                [self.tfFFD3 setStringValue:[NSString stringWithFormat:@"FFD3 Marker Count:%d", iHeaderCount[0xd3]]];
+                [self.tfFFD3 sizeToFit];
 
-            [self.tfFFD4 setStringValue:[NSString stringWithFormat:@"FFD4 Marker Count:%d", iHeaderCount[0xd4]]];
-            [self.tfFFD4 sizeToFit];
+                [self.tfFFD4 setStringValue:[NSString stringWithFormat:@"FFD4 Marker Count:%d", iHeaderCount[0xd4]]];
+                [self.tfFFD4 sizeToFit];
 
-            [self.tfFFD5 setStringValue:[NSString stringWithFormat:@"FFD5 Marker Count:%d", iHeaderCount[0xd5]]];
-            [self.tfFFD5 sizeToFit];
+                [self.tfFFD5 setStringValue:[NSString stringWithFormat:@"FFD5 Marker Count:%d", iHeaderCount[0xd5]]];
+                [self.tfFFD5 sizeToFit];
 
-            [self.tfFFD6 setStringValue:[NSString stringWithFormat:@"FFD6 Marker Count:%d", iHeaderCount[0xd6]]];
-            [self.tfFFD6 sizeToFit];
+                [self.tfFFD6 setStringValue:[NSString stringWithFormat:@"FFD6 Marker Count:%d", iHeaderCount[0xd6]]];
+                [self.tfFFD6 sizeToFit];
 
-            [self.tfFFD7 setStringValue:[NSString stringWithFormat:@"FFD7 Marker Count:%d", iHeaderCount[0xd7]]];
-            [self.tfFFD7 sizeToFit];
+                [self.tfFFD7 setStringValue:[NSString stringWithFormat:@"FFD7 Marker Count:%d", iHeaderCount[0xd7]]];
+                [self.tfFFD7 sizeToFit];
 
-            [self.tfFFF8 setStringValue:[NSString stringWithFormat:@"FFF8 Marker Count:%d", iHeaderCount[0xf8]]];
-            [self.tfFFF8 sizeToFit];
-            
-            [self.tfFFFA setStringValue:[NSString stringWithFormat:@"FFFA Marker Count:%d", iHeaderCount[0xfa]]];
-            [self.tfFFFA sizeToFit];
-            
-            [self.tfFFE1 setStringValue:[NSString stringWithFormat:@"FFE1 Marker Count:%d", iHeaderCount[0xe1]]];
-            [self.tfFFE1 sizeToFit];
-            
-            NSLog(@"%d", iCount);
-            
-            
-            
+                [self.tfFFF8 setStringValue:[NSString stringWithFormat:@"FFF8 Marker Count:%d", iHeaderCount[0xf8]]];
+                [self.tfFFF8 sizeToFit];
+
+                [self.tfFFFA setStringValue:[NSString stringWithFormat:@"FFFA Marker Count:%d", iHeaderCount[0xfa]]];
+                [self.tfFFFA sizeToFit];
+                
+                [self.tfFFE1 setStringValue:[NSString stringWithFormat:@"FFE1 Marker Count:%d", iHeaderCount[0xe1]]];
+                [self.tfFFE1 sizeToFit];
+                NSLog(@"%d", iCount);
+            });
+
         }
         
     }];
