@@ -14,6 +14,8 @@ using namespace std;
 
 #define TEM 0x01
 
+// 0X02 ~ 0xBF // RES
+
 #define SOF 0xC0
 #define DHT 0xC4
 #define DAC 0xCC
@@ -25,8 +27,13 @@ using namespace std;
 #define DQT 0xDB
 #define DNL 0xDC
 #define DRI 0xDD
+
 #define DHP 0xDE
 #define EXP 0xDF
+
+// 0xD0 ~ 0xD7 // RST
+// 0xE0 ~ 0xEF // APP
+// 0xF0 ~ 0xFD // JPG
 
 #define COM 0xFE
 
@@ -126,11 +133,15 @@ struct ArithmeticParameter {
     unsigned char Cs;
 };
 
+istream& operator>> (istream& s, ArithmeticParameter& val);
+
 struct ArithmeticTable {
     unsigned char marker = DAC;
     unsigned short La;
     vector<ArithmeticParameter> arithmeticParameters;
 };
+
+istream& operator>> (istream& s, ArithmeticTable& val);
 
 /*******************************************************************************************************/
 
@@ -140,6 +151,8 @@ struct RestartInterval {
     unsigned short Ri;
 };
 
+istream& operator>> (istream& s, RestartInterval& val);
+
 /*******************************************************************************************************/
 
 struct CommentSegment {
@@ -147,6 +160,8 @@ struct CommentSegment {
     unsigned short Lc;
     vector<unsigned char> Cmi;
 };
+
+istream& operator>> (istream& s, CommentSegment& val);
 
 /*******************************************************************************************************/
 
@@ -156,6 +171,8 @@ struct Application {
     vector<unsigned char> Api;
 };
 
+istream& operator>> (istream& s, Application& val);
+
 /*******************************************************************************************************/
 
 struct DefineNumberOfLine {
@@ -163,5 +180,7 @@ struct DefineNumberOfLine {
     unsigned short Ld;
     unsigned short NL;
 };
+
+istream& operator>> (istream& s, DefineNumberOfLine& val);
 
 /*******************************************************************************************************/

@@ -18,6 +18,10 @@ vector<FrameHeader> frameHeaders;
 vector<ScanHeader> scanHeaders;
 vector<QuantizationTable> quantizationTables;
 vector<HuffmanTable> huffmanTables;
+vector<RestartInterval> restartIntervals;
+vector<Application> applications;
+vector<CommentSegment> comments;
+DefineNumberOfLine defineNumberOfLine;
 
 int iHeaderCount[256];
 
@@ -51,20 +55,8 @@ NSSet *setValidHeader = [NSSet setWithObjects:
 @property (unsafe_unretained) IBOutlet NSTextView *tvSOF;
 @property (unsafe_unretained) IBOutlet NSTextView *tvSOS;
 @property (unsafe_unretained) IBOutlet NSTextView *tvDRI;
-
-@property (weak) IBOutlet NSTextField *tfFFD8;
-@property (weak) IBOutlet NSTextField *tfFFD9;
-@property (weak) IBOutlet NSTextField *tfFFD0;
-@property (weak) IBOutlet NSTextField *tfFFD1;
-@property (weak) IBOutlet NSTextField *tfFFD2;
-@property (weak) IBOutlet NSTextField *tfFFD3;
-@property (weak) IBOutlet NSTextField *tfFFD4;
-@property (weak) IBOutlet NSTextField *tfFFD5;
-@property (weak) IBOutlet NSTextField *tfFFD6;
-@property (weak) IBOutlet NSTextField *tfFFD7;
-@property (weak) IBOutlet NSTextField *tfFFF8;
-@property (weak) IBOutlet NSTextField *tfFFFA;
-@property (weak) IBOutlet NSTextField *tfFFE1;
+@property (weak) IBOutlet NSTextField *app;
+@property (weak) IBOutlet NSTextField *comment;
 
 @end
 
@@ -116,6 +108,9 @@ NSSet *setValidHeader = [NSSet setWithObjects:
             scanHeaders.clear();
             quantizationTables.clear();
             huffmanTables.clear();
+            restartIntervals.clear();
+            applications.clear();
+            comments.clear();
 
             NSURL*  theDoc = [[weak_self.opPanel URLs] objectAtIndex:0];
 
@@ -123,7 +118,6 @@ NSSet *setValidHeader = [NSSet setWithObjects:
 
             [self.ivTest setImage:[[NSImage alloc] initWithContentsOfURL:theDoc]];
 
-#warning remove
             fstream fs;
             fs.open([theDoc.path UTF8String], fstream::in | fstream::out);
             fs.unsetf(fstream::skipws);
@@ -135,6 +129,14 @@ NSSet *setValidHeader = [NSSet setWithObjects:
 
             while ((cMarker = [self interpretMarkersWithStream:fs]) && cMarker != EOI) {
 
+                if (cMarker >= 0xE0 && cMarker <= 0xEF) {
+                    Application application;
+                    application.marker = cMarker;
+                    fs >> application;
+
+                    applications.push_back(application);
+                }
+
                 switch (cMarker) {
                     case SOF: {
                         FrameHeader frameHeader;
@@ -144,7 +146,7 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                         //Get LF, P, Y, X, Nf
                         self.mdContent[@0xc0] =  [self.mdContent[@0xc0] stringByAppendingString:
                                                   [NSString stringWithFormat:
-                                                   @"\r\rLF:%d  P:%d  Y:%d  X:%d  Nf:%d",
+                                                   @"\r\r%d  %d  %d  %d  %d",
                                                    frameHeader.Lf,
                                                    frameHeader.P,
                                                    frameHeader.Y,
@@ -157,11 +159,66 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                         for (int j = 0; j < components.size(); j++)
                             self.mdContent[@0xc0] =  [self.mdContent[@0xc0] stringByAppendingString:
                                                       [NSString stringWithFormat:
-                                                       @" C%d:%d  H%d:%d  V%d:%d  Tq%d:%d",
-                                                       j, components[j].Ci,
-                                                       j, components[j].Hi,
-                                                       j, components[j].Vi,
-                                                       j, components[j].Tqi]];
+                                                       @"\r%d  %d  %d  %d",
+                                                       components[j].Ci,
+                                                       components[j].Hi,
+                                                       components[j].Vi,
+                                                       components[j].Tqi]];
+                    }
+                        break;
+
+                    case DHT: {
+                        HuffmanTable huffmanTable;
+                        fs >> huffmanTable;
+                        huffmanTables.push_back(huffmanTable);
+
+                        //Get Lh
+                        self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+                                                 [NSString stringWithFormat:@"\r\r%d",
+                                                  huffmanTable.Lh]];
+
+                        vector<HuffmanParameter> huffmanParameter = huffmanTable.huffmanParameters;
+
+
+                        for (int j = 0; j < huffmanParameter.size(); j++) {
+
+                            //Get Tc, Th
+                            self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+                                                     [NSString stringWithFormat:
+                                                      @"\r\r%d  %d",
+                                                      huffmanParameter[j].Tc,
+                                                      huffmanParameter[j].Th]];
+
+                            //Get Li
+                            for (int k = 0; k < 16; k++) {
+
+                                self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+                                                         [NSString stringWithFormat:
+                                                          @"  %d",
+                                                          huffmanParameter[j].Li[k]]];
+                            }
+
+                            self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+                                                     [NSString stringWithFormat:
+                                                      @"\r"]];
+
+                            //Get V(i,j)
+                            for (int k = 0; k < 16; k++)
+                                for (int m = 0; m < huffmanParameter[j].Li[k]; m++)
+
+                                    self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+                                                             [NSString stringWithFormat:
+                                                              @"%d  ",
+                                                              huffmanParameter[j].Vij[k][m]]];
+                        }
+                        
+                        
+                    }
+                        break;
+
+                    case DAC: {
+                        ArithmeticTable arithmeticTable;
+                        fs >> arithmeticTable;
                     }
                         break;
 
@@ -174,7 +231,7 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                         //Get Ls, Ns
                         self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
                                                  [NSString stringWithFormat:
-                                                  @"\r\rLs:%d  Ns:%d",
+                                                  @"\r\r%d  %d",
                                                   scanHeader.Ls,
                                                   scanHeader.Ns]];
 
@@ -184,15 +241,15 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                       for (int j = 0; j < scanComponents.size(); j++)
                           self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
                                                    [NSString stringWithFormat:
-                                                    @"  Cs%d:%d  Td%d:%d  Ta%d:%d",
-                                                    j+1, scanComponents[j].Csj,
-                                                    j+1, scanComponents[j].Tdj,
-                                                    j+1, scanComponents[j].Taj]];
+                                                    @"  %d  %d  %d",
+                                                    scanComponents[j].Csj,
+                                                    scanComponents[j].Tdj,
+                                                    scanComponents[j].Taj]];
 
                       //Get Ss, Se, Ah, Al
                       self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
                                                [NSString stringWithFormat:
-                                                @"  Ss:%d  Se:%d  Ah:%d  Al:%d",
+                                                @"  %d  %d  %d  \%d",
                                                 scanHeader.Ss,
                                                 scanHeader.Se,
                                                 scanHeader.Ah,
@@ -210,7 +267,7 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                         //Get Lq
                         self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
                                                  [NSString stringWithFormat:
-                                                  @"\r\rLq:%d",
+                                                  @"\r\r%d",
                                                   quantizationTable.Lq]];
 
                         vector<QuantizationParameter> parameters = quantizationTable.quantizationParameters;
@@ -220,17 +277,23 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                             //Get Pq, Tq
                             self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
                                                      [NSString stringWithFormat:
-                                                      @"\r\rPq:%d  Tq:%d\r",
+                                                      @"\r\r%d  %d",
                                                       parameters[i].Pq,
                                                       parameters[i].Tq]];
 
                             //Get Qk
                             for (int j = 0; j < 64; j++) {
 
-                                self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
-                                                         [NSString stringWithFormat:
-                                                          @"Q%d:%d  ",
-                                                          j, parameters[i].Qk[j]]];
+                                if (j % 8 == 0)
+                                    self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
+                                                             [NSString stringWithFormat:
+                                                              @"\r%d  ",
+                                                              parameters[i].Qk[j]]];
+                                else
+                                    self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
+                                                             [NSString stringWithFormat:
+                                                              @"%d  ",
+                                                            parameters[i].Qk[j]]];
                             }
                             
                         }
@@ -238,111 +301,36 @@ NSSet *setValidHeader = [NSSet setWithObjects:
                     }
                         break;
 
-                    case DHT: {
-                        HuffmanTable huffmanTable;
-                        fs >> huffmanTable;
-                        huffmanTables.push_back(huffmanTable);
+                    case DNL:
+                        fs >> defineNumberOfLine;
+                        break;
 
-                        //Get Lh
-                        self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
-                                                 [NSString stringWithFormat:@"\r\rLh:%d",
-                                                  huffmanTable.Lh]];
+                    case DRI: {
+                        RestartInterval restartInterval;
+                        fs >> restartInterval;
+                        restartIntervals.push_back(restartInterval);
 
-                        vector<HuffmanParameter> huffmanParameter = huffmanTable.huffmanParameters;
-
-
-                        for (int j = 0; j < huffmanParameter.size(); j++) {
-
-                            //Get Tc, Th
-                            self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
-                                                     [NSString stringWithFormat:
-                                                      @"\r\rTc: %d  Th: %d",
-                                                      huffmanParameter[j].Tc,
-                                                      huffmanParameter[j].Th]];
-
-                            self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:@"\rL: "];
-
-                            //Get Li
-                            for (int k = 0; k < 16; k++) {
-
-                                self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
-                                                         [NSString stringWithFormat:
-                                                          @" %d",
-                                                        huffmanParameter[j].Li[k]]];
-                            }
-
-                            self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:@"\rV: "];
-
-                            //Get V(i,j)
-                            for (int k = 0; k < 16; k++)
-                                for (int m = 0; m < huffmanParameter[j].Li[k]; m++)
-
-                                    self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
-                                                             [NSString stringWithFormat:
-                                                              @"%X  ",
-                                                              huffmanParameter[j].Vij[k][m]]];
-                        }
-
+                        //Get Lr, Ri
+                        self.mdContent[@0xdd] = [self.mdContent[@0xdd] stringByAppendingString:
+                                                 [NSString stringWithFormat:
+                                                  @"\r\r%d  %d",
+                                                  restartInterval.Lr,
+                                                  restartInterval.Ri]];
 
                     }
                         break;
+
+                    case COM: {
+                        CommentSegment commentSegment;
+                        fs >> commentSegment;
+
+                        comments.push_back(commentSegment);
+                    }
+                        break;
+
                     default:
                         break;
                 }
-            }
-
-            NSData *ndImage = [NSData dataWithContentsOfURL:theDoc];
-
-            Byte *bData = (Byte *)[ndImage bytes];
-
-            NSUInteger n = ndImage.length;
-
-            int iCount = 0;
-            for (NSUInteger i = 1; i < n; i++) {
-                if (bData[i - 1] != 0xff)
-                    continue;
-
-                if ([setValidHeader containsObject:[NSNumber numberWithUnsignedChar:bData[i]]]) {
-
-                    int iLen = (bData[i+1] << 8) | (bData[i+2]);
-                    bool bSkip = true;
-
-                    switch (bData[i]) {
-
-                        case 0xc4:
-                            break;
-
-                        case 0xdb:
-                            break;
-
-                        case 0xdd: {
-
-                            //Get Lr, Ri
-                            self.mdContent[@0xdd] = [self.mdContent[@0xdd] stringByAppendingString:
-                                                 [NSString stringWithFormat:
-                                                  @"\r\rLr:%d  Ri:%d",
-                                                  iLen,
-                                                  (bData[i +3] << 8) | (bData[i +4])]];
-
-                        }
-                            break;
-
-                        case 0xe1:
-                            break;
-
-                        default:
-                            bSkip = false;
-                            break;
-                    }
-
-                    iHeaderCount[bData[i]]++;
-
-                    iCount++;
-
-                    //                    if (bSkip)
-                    //                        i += iLen -1;
-                }
-
             }
 
 
@@ -353,55 +341,34 @@ NSSet *setValidHeader = [NSSet setWithObjects:
             NSTextView *tvDHT = DHTViewController.tvDHT;
 
             dispatch_async(dispatch_get_main_queue(), ^{
-                [tvDHT setString:[NSString stringWithFormat:@"FFc4 Marker Count:%d%@", iHeaderCount[0xc4], self.mdContent[@0xc4]]];
+                [self.tvSOF setString:[NSString stringWithFormat:@"FFc0 SOF Marker Count:%lu%@",
+                                       frameHeaders.size(),
+                                       self.mdContent[@0xc0]]];
 
-                [tvDQT setString:[NSString stringWithFormat:@"FFdb Marker Count:%d%@", iHeaderCount[0xdb], self.mdContent[@0xdb]]];
+                [tvDHT setString:[NSString stringWithFormat:@"FFc4 DHT Marker Count:%lu%@",
+                                  huffmanTables.size(),
+                                  self.mdContent[@0xc4]]];
 
-                [self.tvSOF setString:[NSString stringWithFormat:@"FFc0 Marker Count:%d%@", iHeaderCount[0xc0], self.mdContent[@0xc0]]];
+                [self.tvSOS setString:[NSString stringWithFormat:@"FFda SOS Marker Count:%lu%@",
+                                       scanHeaders.size(),
+                                       self.mdContent[@0xda]]];
 
-                [self.tvSOS setString:[NSString stringWithFormat:@"FFda Marker Count:%d%@", iHeaderCount[0xda], self.mdContent[@0xda]]];
+                [tvDQT setString:[NSString stringWithFormat:@"FFdb DQT Marker Count:%lu%@",
+                                  quantizationTables.size(),
+                                  self.mdContent[@0xdb]]];
 
-                [self.tvDRI setString:[NSString stringWithFormat:@"FFdd Marker Count:%d%@", iHeaderCount[0xdd], self.mdContent[@0xdd]]];
+                [self.tvDRI setString:[NSString stringWithFormat:@"FFdd DRI Marker Count:%lu%@",
+                                       restartIntervals.size(),
+                                       self.mdContent[@0xdd]]];
 
-                [self.tfFFD8 setStringValue:[NSString stringWithFormat:@"FFD8 Marker Count:%d", iHeaderCount[0xd8]]];
-                [self.tfFFD8 sizeToFit];
+                [self.app setStringValue:[NSString stringWithFormat:@"App Marker Count: %lu",
+                                          applications.size()]];
+                [self.app sizeToFit];
 
-                [self.tfFFD9 setStringValue:[NSString stringWithFormat:@"FFD9 Marker Count:%d", iHeaderCount[0xd9]]];
-                [self.tfFFD9 sizeToFit];
+                [self.comment setStringValue:[NSString stringWithFormat:@"Comment Marker Count: %lu",
+                                          applications.size()]];
+                [self.comment sizeToFit];
 
-                [self.tfFFD0 setStringValue:[NSString stringWithFormat:@"FFD0 Marker Count:%d", iHeaderCount[0xd0]]];
-                [self.tfFFD0 sizeToFit];
-
-                [self.tfFFD1 setStringValue:[NSString stringWithFormat:@"FFD1 Marker Count:%d", iHeaderCount[0xd1]]];
-                [self.tfFFD1 sizeToFit];
-
-                [self.tfFFD2 setStringValue:[NSString stringWithFormat:@"FFD2 Marker Count:%d", iHeaderCount[0xd2]]];
-                [self.tfFFD2 sizeToFit];
-
-                [self.tfFFD3 setStringValue:[NSString stringWithFormat:@"FFD3 Marker Count:%d", iHeaderCount[0xd3]]];
-                [self.tfFFD3 sizeToFit];
-
-                [self.tfFFD4 setStringValue:[NSString stringWithFormat:@"FFD4 Marker Count:%d", iHeaderCount[0xd4]]];
-                [self.tfFFD4 sizeToFit];
-
-                [self.tfFFD5 setStringValue:[NSString stringWithFormat:@"FFD5 Marker Count:%d", iHeaderCount[0xd5]]];
-                [self.tfFFD5 sizeToFit];
-
-                [self.tfFFD6 setStringValue:[NSString stringWithFormat:@"FFD6 Marker Count:%d", iHeaderCount[0xd6]]];
-                [self.tfFFD6 sizeToFit];
-
-                [self.tfFFD7 setStringValue:[NSString stringWithFormat:@"FFD7 Marker Count:%d", iHeaderCount[0xd7]]];
-                [self.tfFFD7 sizeToFit];
-
-                [self.tfFFF8 setStringValue:[NSString stringWithFormat:@"FFF8 Marker Count:%d", iHeaderCount[0xf8]]];
-                [self.tfFFF8 sizeToFit];
-
-                [self.tfFFFA setStringValue:[NSString stringWithFormat:@"FFFA Marker Count:%d", iHeaderCount[0xfa]]];
-                [self.tfFFFA sizeToFit];
-                
-                [self.tfFFE1 setStringValue:[NSString stringWithFormat:@"FFE1 Marker Count:%d", iHeaderCount[0xe1]]];
-                [self.tfFFE1 sizeToFit];
-                NSLog(@"%d", iCount);
             });
 
         }
@@ -421,6 +388,9 @@ NSSet *setValidHeader = [NSSet setWithObjects:
         }
 
         if (setMarkers.count(cMarker))
+            break;
+
+        if (cMarker >= 0xE0 && cMarker <= 0xEF)
             break;
 
         cFF = cMarker;

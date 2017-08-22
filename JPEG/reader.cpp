@@ -7,28 +7,24 @@
 /*****************************************************************************************************/
 
 set<unsigned char> setMarkers = {
-    0x01,          // TEM
-    // 0X02 ~ 0xBF // RES
+    TEM,
 
-    0xC0,          // SOF
-    0xC4,          // DHT
-    0xCC,          // DAC
+    SOF,
+    DHT,
+    DAC,
 
-    0xD8,          // SOI
-    0xD9,          // EOI
+    SOI,
+    EOI,
 
-    0xDA,          // SOS
-    0xDB,          // DQT
-    0xDC,          // DNL
-    0xDD,          // DRI
-    0xDE,          // DHP
-    0xDF,          // EXP
+    SOS,
+    DQT,
+    DNL,
+    DRI,
 
-    // 0xD0 ~ 0xD7 // RST
-    // 0xE0 ~ 0xEF // APP
-    // 0xF0 ~ 0xFD // JPG
+    DHP,
+    EXP,
 
-    0xFE,          // COM
+    COM,
 };
 
 /*****************************************************************************************************/
@@ -58,10 +54,10 @@ istream& operator>> (istream& s, FrameHeader& val) {
     for (int i = 0; i < 8; i++)
         s >> temp[i];
 
-    val.Lf = (temp[0] << 8) + temp[1];
+    val.Lf = (temp[0] << 8) | temp[1];
     val.P = temp[2];
-    val.Y = (temp[3] << 8) + temp[4];
-    val.X = (temp[5] << 8) + temp[6];
+    val.Y = (temp[3] << 8) | temp[4];
+    val.X = (temp[5] << 8) | temp[6];
     val.Nf = temp[7];
 
     ComponentParameter componentParameter;
@@ -99,7 +95,7 @@ istream& operator>> (istream& s, ScanHeader& val) {
 
     s >> temp[0] >> temp[1];
 
-    val.Ls = (temp[0] << 8) + temp[1];
+    val.Ls = (temp[0] << 8) | temp[1];
 
     s >> val.Ns;
 
@@ -212,7 +208,7 @@ istream& operator>> (istream& s, HuffmanTable& val) {
 
     s >> temp[0] >> temp[1];
 
-    val.Lh = (temp[0] << 8) + temp[1];
+    val.Lh = (temp[0] << 8) | temp[1];
 
     // Get Huffman Table's range
     long long int i = s.tellg();
@@ -235,3 +231,152 @@ istream& operator>> (istream& s, HuffmanTable& val) {
     return s;
 }
 
+/*****************************************************************************************************/
+//
+// Operator>> function for ArithmeticTable and ArithmeticParameter
+//
+/*****************************************************************************************************/
+
+istream& operator>> (istream& s, ArithmeticParameter& val) {
+
+    // Use an unsigned char to tempily store data which need to compute later
+    unsigned char temp;
+
+    s >> temp;
+
+    val.Tc = temp >> 4;
+    val.Tb = temp & 0x0F;
+
+    s >> val.Cs;
+
+    return s;
+}
+
+istream& operator>> (istream& s, ArithmeticTable& val) {
+
+    // Use 2 unsigned char to tempily store data which need to compute later
+    unsigned char temp[2];
+
+    s >> temp[0] >> temp[1];
+
+    val.La = (temp[0] << 8) | temp[1];
+
+    // Get Arithmetic Table's range
+    long long int i = s.tellg();
+    long long int end = i + val.La - 2;
+
+    while (i < end) {
+        ArithmeticParameter arithmeticParameter;
+        s >> arithmeticParameter;
+
+        val.arithmeticParameters.push_back(arithmeticParameter);
+
+        i = s.tellg();
+    }
+    
+    return s;
+}
+
+/*****************************************************************************************************/
+//
+// Operator>> function for RestartInterval
+//
+/*****************************************************************************************************/
+
+istream& operator>> (istream& s, RestartInterval& val) {
+
+    // Use 2 unsigned char to tempily store data which need to compute later
+    unsigned char temp[2];
+
+    s >> temp[0] >> temp[1];
+
+    val.Lr = (temp[0] << 8) | temp[1];
+
+    s >> temp[0] >> temp[1];
+
+    val.Ri = (temp[0] << 8) | temp[1];
+    
+    return s;
+}
+
+/*****************************************************************************************************/
+//
+// Operator>> function for CommentSegment
+//
+/*****************************************************************************************************/
+
+istream& operator>> (istream& s, CommentSegment& val) {
+
+    // Use 2 unsigned char to tempily store data which need to compute later
+    unsigned char temp[2];
+
+    s >> temp[0] >> temp[1];
+
+    val.Lc = (temp[0] << 8) | temp[1];
+
+    // Get CommentSegment's range
+    long long int i = s.tellg();
+    long long int end = i + val.Lc - 2;
+
+    while (i < end) {
+        s >> temp[0];
+
+        val.Cmi.push_back(temp[0]);
+
+        i = s.tellg();
+    }
+
+    return s;
+}
+
+/*****************************************************************************************************/
+//
+// Operator>> function for Application
+//
+/*****************************************************************************************************/
+
+istream& operator>> (istream& s, Application& val) {
+
+    // Use 2 unsigned char to tempily store data which need to compute later
+    unsigned char temp[2];
+
+    s >> temp[0] >> temp[1];
+
+    val.Lp = (temp[0] << 8) | temp[1];
+
+    // Get Application's range
+    long long int i = s.tellg();
+    long long int end = i + val.Lp - 2;
+
+    while (i < end) {
+        s >> temp[0];
+
+        val.Api.push_back(temp[0]);
+
+        i = s.tellg();
+    }
+    
+    
+    return s;
+}
+
+/*****************************************************************************************************/
+//
+// Operator>> function for DefineNumberOfLine
+//
+/*****************************************************************************************************/
+
+istream& operator>> (istream& s, DefineNumberOfLine& val) {
+
+    unsigned char temp[2];
+
+    s >> temp[0] >> temp[1];
+
+    val.Ld = (temp[0] << 8) | temp[1];
+
+    s >> temp[0] >> temp[1];
+
+    val.NL = (temp[0] << 8) | temp[1];
+    
+    return s;
+}
