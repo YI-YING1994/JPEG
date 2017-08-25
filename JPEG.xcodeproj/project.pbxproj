@@ -26,6 +26,7 @@
 		2D112BCC1F49CA9B009E6776 /* reader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = reader.h; sourceTree = "<group>"; };
 		2D2DB1071F4998B6002A201F /* reader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = reader.cpp; sourceTree = "<group>"; };
 		2D2DB1081F4998B6002A201F /* huffman.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = huffman.cpp; sourceTree = "<group>"; };
+		2D3E57C21F4C913200D7B8F7 /* huffman.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = huffman.h; sourceTree = "<group>"; };
 		2D8532C41F474705001AE863 /* JPEG.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JPEG.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D8532C71F474705001AE863 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		2D8532C81F474705001AE863 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -53,6 +54,7 @@
 			children = (
 				2D112BCC1F49CA9B009E6776 /* reader.h */,
 				2D2DB1071F4998B6002A201F /* reader.cpp */,
+				2D3E57C21F4C913200D7B8F7 /* huffman.h */,
 				2D2DB1081F4998B6002A201F /* huffman.cpp */,
 			);
 			name = "C++ File";

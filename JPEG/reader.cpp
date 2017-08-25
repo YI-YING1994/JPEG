@@ -150,7 +150,7 @@ istream& operator>> (istream& s, QuantizationParameter& val) {
     return s;
 }
 
-istream& operator>> (istream& s, QuantizationTable& val) {
+istream& operator>> (istream& s, QuantizationHeader& val) {
 
     // Use 2 unsigned char to tempily store data which need to compute later
     unsigned char temp[2];
@@ -189,19 +189,19 @@ istream& operator>> (istream& s, HuffmanParameter& val) {
     val.Tc = temp >> 4;
     val.Th = temp & 0x0F;
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 1; i < 17; i++)
         s >> val.Li[i];
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 1; i < 17; i++)
         for(int j = 0; j < val.Li[i]; j++) {
             s >> temp;
-            val.Vij[i].push_back(temp);
+            val.Vij.push_back(temp);
         }
 
     return s;
 }
 
-istream& operator>> (istream& s, HuffmanTable& val) {
+istream& operator>> (istream& s, HuffmanHeader& val) {
 
     // Use 2 unsigned char to tempily store data which need to compute later
     unsigned char temp[2];
@@ -210,7 +210,7 @@ istream& operator>> (istream& s, HuffmanTable& val) {
 
     val.Lh = (temp[0] << 8) | temp[1];
 
-    // Get Huffman Table's range
+    // Get Huffman header's range
     long long int i = s.tellg();
     long long int end = i + val.Lh - 2;
 
@@ -223,7 +223,7 @@ istream& operator>> (istream& s, HuffmanTable& val) {
         i = s.tellg();
 
         if (i == -1) {
-            cout << "istream huffman error" << endl;
+            cout << "istream huffman header error" << endl;
             break;
         }
     }

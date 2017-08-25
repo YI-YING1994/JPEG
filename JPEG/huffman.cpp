@@ -1,15 +1,11 @@
 /*****************************************************************************************************/
-// 
-// Generate HUFFMAN Tables
 //
-/*****************************************************************************************************/
-
-int iBITS[] = {0, 0, 0, 7, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
-int iHUFFVAL[] = {0x4, 0x5, 0x3, 0x2, 0x6, 0x1, 0x0, 0x7, 0x8, 0x9, 0xA, 0xB};
-
 // Input BITS list
 // Output HUFFSIZE table
-int generateSizeTable(int *BITS, int *HUFFSIZE) {
+//
+/*****************************************************************************************************/
+template <typename T1, typename T2>
+int generateSizeTable(T1 BITS, T2 HUFFSIZE) {
     int k = 0;
     int i = 1, j = 1;
     
@@ -26,13 +22,19 @@ int generateSizeTable(int *BITS, int *HUFFSIZE) {
     return k;
 }
 
+/*****************************************************************************************************/
+//
 // Input HUFFSIZE table
 // Output HUFFCODE
-void generateCodeTable(int *HUFFSIZE, int *HUFFCODE) {
+//
+/*****************************************************************************************************/
+
+template <typename T1, typename T2>
+void generateCodeTable(T1 HUFFSIZE, T2 HUFFCODE) {
     int k = 0;
     int iCode = 0;
     int iSi = HUFFSIZE[0];
-    
+
     while (true) {
         do {
             HUFFCODE[k] = iCode;
@@ -42,27 +44,36 @@ void generateCodeTable(int *HUFFSIZE, int *HUFFCODE) {
     
         if (HUFFSIZE[k] == 0)
             break;
-    
+
         do {
             iCode = iCode << 1;
             iSi++;
         } while (HUFFSIZE[k] != iSi);
     }
+
 }
 
+/*****************************************************************************************************/
+//
 // Input HUFFSIZE, HUFFCODE, HUFFVAL, LASTK
 // Output EHUFCO, EHUFSI
-void generateEHUFCOandEHUFSI(int *HUFFSIZE, int *HUFFCODE, int *HUFFVAL, int *EHUFCO, int *EHUFSI,
- int LASTK) {
+//
+/*****************************************************************************************************/
+
+template <typename T1, typename T2, typename T3, typename T4,  typename T5>
+void generateEHUFCOandEHUFSI(T1 HUFFSIZE, T2 HUFFCODE, T3 HUFFVAL, T4 EHUFCO, T5 EHUFVAL,
+                             int LASTK) {
 
     int i;
     int k = 0;
 
     do {
-        i = HUFFVAL[k];
-        
+        i = (HUFFVAL[k] >> 4) * 10 + (HUFFVAL[k] & 0x0F);
+        if ((HUFFVAL[k] >> 4) == 0x0F)
+            i++;
+
         EHUFCO[i] = HUFFCODE[k];
-        EHUFSI[i] = HUFFSIZE[k];
+        EHUFVAL[i] = HUFFVAL[k];
 
         k++;
     } while (k < LASTK);
