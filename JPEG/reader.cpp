@@ -168,6 +168,11 @@ istream& operator>> (istream& s, QuantizationHeader& val) {
         s >> parameter;
         val.quantizationParameters.push_back(parameter);
         i = s.tellg();
+
+        if (i == -1) {
+            cout << "istream Quantization header error" << endl;
+            break;
+        }
     }
 
     return s;

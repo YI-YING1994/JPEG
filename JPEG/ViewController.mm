@@ -252,41 +252,8 @@ unordered_map<int, unsigned char> huffmanTables[2][2];
             }
                 break;
 
-            case SOS: {
-                ScanHeader scanHeader;
-                fs >> scanHeader;
-
-                scanHeaders.push_back(scanHeader);
-
-                //Get Ls, Ns
-                self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
-                                         [NSString stringWithFormat:
-                                          @"\r\r%d  %d",
-                                          scanHeader.Ls,
-                                          scanHeader.Ns]];
-
-                vector<ScanComponentParameter> scanComponents = scanHeader.scanComponentParameters;
-
-                //Get Cs, Td, Ta
-                for (int j = 0; j < scanComponents.size(); j++)
-                    self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
-                                             [NSString stringWithFormat:
-                                              @"  %d  %d  %d",
-                                              scanComponents[j].Csj,
-                                              scanComponents[j].Tdj,
-                                              scanComponents[j].Taj]];
-
-                //Get Ss, Se, Ah, Al
-                self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
-                                         [NSString stringWithFormat:
-                                          @"  %d  %d  %d  \%d",
-                                          scanHeader.Ss,
-                                          scanHeader.Se,
-                                          scanHeader.Ah,
-                                          scanHeader.Al]];
-
-
-            }
+            case SOS:
+                [self decodeScanWithFstream:fs];
                 break;
 
             case DQT: {
@@ -367,6 +334,45 @@ unordered_map<int, unsigned char> huffmanTables[2][2];
 
 /*******************************************************************************************************/
 
+- (void)decodeScanWithFstream:(fstream&)fs {
+    ScanHeader scanHeader;
+    fs >> scanHeader;
+
+    scanHeaders.push_back(scanHeader);
+
+
+
+    //Get Ls, Ns
+    self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
+                             [NSString stringWithFormat:
+                              @"\r\r%d  %d",
+                              scanHeader.Ls,
+                              scanHeader.Ns]];
+
+    vector<ScanComponentParameter> scanComponents = scanHeader.scanComponentParameters;
+
+    //Get Cs, Td, Ta
+    for (int j = 0; j < scanComponents.size(); j++)
+        self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
+                                 [NSString stringWithFormat:
+                                  @"  %d  %d  %d",
+                                  scanComponents[j].Csj,
+                                  scanComponents[j].Tdj,
+                                  scanComponents[j].Taj]];
+
+    //Get Ss, Se, Ah, Al
+    self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
+                             [NSString stringWithFormat:
+                              @"  %d  %d  %d  \%d",
+                              scanHeader.Ss,
+                              scanHeader.Se,
+                              scanHeader.Ah,
+                              scanHeader.Al]];
+
+}
+
+/*******************************************************************************************************/
+
 - (unordered_map<int, unsigned char>)generateHuffmanTableWithParameter:(HuffmanParameter)parameter {
     unordered_map<int, unsigned char> huffmanTable;
 
@@ -398,7 +404,7 @@ unordered_map<int, unsigned char> huffmanTables[2][2];
 
 /*******************************************************************************************************/
 
-- (unsigned char)interpretMarkersWithStream:(fstream&) fs {
+- (unsigned char)interpretMarkersWithStream:(fstream&)fs {
     unsigned char cFF, cMarker;
 
     fs >> cFF;

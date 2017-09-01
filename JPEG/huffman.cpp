@@ -68,6 +68,7 @@ void generateEHUFCOandEHUFSI(T1 HUFFSIZE, T2 HUFFCODE, T3 HUFFVAL, T4 EHUFCO, T5
     int k = 0;
 
     do {
+        // Value stores in HUFFVAL is directly the category, not the postion.
         i = (HUFFVAL[k] >> 4) * 10 + (HUFFVAL[k] & 0x0F);
         if ((HUFFVAL[k] >> 4) == 0x0F)
             i++;
