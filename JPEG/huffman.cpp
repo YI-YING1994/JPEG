@@ -1,3 +1,6 @@
+#include <string>
+using namespace std;
+
 /*****************************************************************************************************/
 //
 // Input BITS list
@@ -60,8 +63,8 @@ void generateCodeTable(T1 HUFFSIZE, T2 HUFFCODE) {
 //
 /*****************************************************************************************************/
 
-template <typename T1, typename T2, typename T3, typename T4,  typename T5>
-void generateEHUFCOandEHUFSI(T1 HUFFSIZE, T2 HUFFCODE, T3 HUFFVAL, T4 EHUFCO, T5 EHUFVAL,
+template <typename T1, typename T2, typename T3, typename T4>
+void generateEHUFCOandEHUFSI(T1 HUFFSIZE, T2 HUFFCODE, T3 HUFFVAL, string *EHUFCO, T4 EHUFVAL,
                              int LASTK) {
 
     int i;
@@ -73,9 +76,19 @@ void generateEHUFCOandEHUFSI(T1 HUFFSIZE, T2 HUFFCODE, T3 HUFFVAL, T4 EHUFCO, T5
         if ((HUFFVAL[k] >> 4) == 0x0F)
             i++;
 
-        EHUFCO[i] = HUFFCODE[k];
+        EHUFCO[i] = transformValueToCodeWord(HUFFCODE[k], HUFFSIZE[k]);
         EHUFVAL[i] = HUFFVAL[k];
 
         k++;
     } while (k < LASTK);
+}
+
+template <typename T1>
+string transformValueToCodeWord(T1 code, T1 size) {
+    string sCodeWord = "";
+
+    for (size -= 1; size >= 0; size--)
+        sCodeWord += to_string((code >> size) & 0x1);
+
+    return sCodeWord;
 }

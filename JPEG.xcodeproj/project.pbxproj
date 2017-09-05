@@ -11,6 +11,10 @@
 		2D02603E1F4797BC0092C27F /* DHTViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D02603D1F4797BC0092C27F /* DHTViewController.m */; };
 		2D2DB1091F4998B6002A201F /* reader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D2DB1071F4998B6002A201F /* reader.cpp */; };
 		2D2DB10A1F4998B6002A201F /* huffman.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D2DB1081F4998B6002A201F /* huffman.cpp */; };
+		2D7350691F5C9BAE002CD0C8 /* libopencv_core.3.3.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D7350681F5C9BAE002CD0C8 /* libopencv_core.3.3.0.dylib */; };
+		2D73506B1F5C9BD0002CD0C8 /* libopencv_highgui.3.3.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D73506A1F5C9BD0002CD0C8 /* libopencv_highgui.3.3.0.dylib */; };
+		2D73506D1F5C9BE9002CD0C8 /* libopencv_imgproc.3.3.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D73506C1F5C9BE9002CD0C8 /* libopencv_imgproc.3.3.0.dylib */; };
+		2D7350701F5C9C2F002CD0C8 /* NSImage+OpenCV.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D73506F1F5C9C2F002CD0C8 /* NSImage+OpenCV.mm */; };
 		2D8532C91F474705001AE863 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D8532C81F474705001AE863 /* AppDelegate.m */; };
 		2D8532CC1F474705001AE863 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D8532CB1F474705001AE863 /* main.m */; };
 		2D8532CF1F474705001AE863 /* ViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D8532CE1F474705001AE863 /* ViewController.mm */; };
@@ -27,6 +31,11 @@
 		2D2DB1071F4998B6002A201F /* reader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = reader.cpp; sourceTree = "<group>"; };
 		2D2DB1081F4998B6002A201F /* huffman.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = huffman.cpp; sourceTree = "<group>"; };
 		2D3E57C21F4C913200D7B8F7 /* huffman.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = huffman.h; sourceTree = "<group>"; };
+		2D7350681F5C9BAE002CD0C8 /* libopencv_core.3.3.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopencv_core.3.3.0.dylib; path = ../../../../../../usr/local/Cellar/opencv/3.3.0_3/lib/libopencv_core.3.3.0.dylib; sourceTree = "<group>"; };
+		2D73506A1F5C9BD0002CD0C8 /* libopencv_highgui.3.3.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopencv_highgui.3.3.0.dylib; path = ../../../../../../usr/local/Cellar/opencv/3.3.0_3/lib/libopencv_highgui.3.3.0.dylib; sourceTree = "<group>"; };
+		2D73506C1F5C9BE9002CD0C8 /* libopencv_imgproc.3.3.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopencv_imgproc.3.3.0.dylib; path = ../../../../../../usr/local/Cellar/opencv/3.3.0_3/lib/libopencv_imgproc.3.3.0.dylib; sourceTree = "<group>"; };
+		2D73506E1F5C9C2F002CD0C8 /* NSImage+OpenCV.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSImage+OpenCV.h"; sourceTree = "<group>"; };
+		2D73506F1F5C9C2F002CD0C8 /* NSImage+OpenCV.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "NSImage+OpenCV.mm"; sourceTree = "<group>"; };
 		2D8532C41F474705001AE863 /* JPEG.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JPEG.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D8532C71F474705001AE863 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		2D8532C81F474705001AE863 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -43,6 +52,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2D73506D1F5C9BE9002CD0C8 /* libopencv_imgproc.3.3.0.dylib in Frameworks */,
+				2D73506B1F5C9BD0002CD0C8 /* libopencv_highgui.3.3.0.dylib in Frameworks */,
+				2D7350691F5C9BAE002CD0C8 /* libopencv_core.3.3.0.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -60,11 +72,22 @@
 			name = "C++ File";
 			sourceTree = "<group>";
 		};
+		2D7350671F5C9BAE002CD0C8 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				2D73506C1F5C9BE9002CD0C8 /* libopencv_imgproc.3.3.0.dylib */,
+				2D73506A1F5C9BD0002CD0C8 /* libopencv_highgui.3.3.0.dylib */,
+				2D7350681F5C9BAE002CD0C8 /* libopencv_core.3.3.0.dylib */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		2D8532BB1F474705001AE863 = {
 			isa = PBXGroup;
 			children = (
 				2D8532C61F474705001AE863 /* JPEG */,
 				2D8532C51F474705001AE863 /* Products */,
+				2D7350671F5C9BAE002CD0C8 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -100,6 +123,8 @@
 			isa = PBXGroup;
 			children = (
 				2D8532CB1F474705001AE863 /* main.m */,
+				2D73506E1F5C9C2F002CD0C8 /* NSImage+OpenCV.h */,
+				2D73506F1F5C9C2F002CD0C8 /* NSImage+OpenCV.mm */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -185,6 +210,7 @@
 				2D02603E1F4797BC0092C27F /* DHTViewController.m in Sources */,
 				2D2DB10A1F4998B6002A201F /* huffman.cpp in Sources */,
 				2D8532CC1F474705001AE863 /* main.m in Sources */,
+				2D7350701F5C9C2F002CD0C8 /* NSImage+OpenCV.mm in Sources */,
 				2D0260381F478E6A0092C27F /* DQTViewController.m in Sources */,
 				2D8532C91F474705001AE863 /* AppDelegate.m in Sources */,
 			);
@@ -300,8 +326,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = UCXGL3HMZX;
 				GCC_NO_COMMON_BLOCKS = YES;
+				HEADER_SEARCH_PATHS = /usr/local/Cellar/opencv/3.3.0_3/include;
 				INFOPLIST_FILE = JPEG/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/opencv/3.3.0_3/lib;
 				PRODUCT_BUNDLE_IDENTIFIER = tw.edu.mcu.05366016.JPEG;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -314,8 +342,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = UCXGL3HMZX;
 				GCC_NO_COMMON_BLOCKS = YES;
+				HEADER_SEARCH_PATHS = /usr/local/Cellar/opencv/3.3.0_3/include;
 				INFOPLIST_FILE = JPEG/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/opencv/3.3.0_3/lib;
 				PRODUCT_BUNDLE_IDENTIFIER = tw.edu.mcu.05366016.JPEG;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

@@ -7,6 +7,7 @@
 //
 
 #import <iostream>
+#import <string>
 #import <unordered_map>
 #import "huffman.h"
 #import "reader.h"
@@ -26,7 +27,8 @@ vector<RestartInterval> restartIntervals;
 vector<Application> applications;
 vector<CommentSegment> comments;
 DefineNumberOfLine defineNumberOfLine;
-unordered_map<int, unsigned char> huffmanTables[2][2];
+unordered_map<string, unsigned char> huffmanTables[2][2];
+int iQuantizationTables[4][64];
 
 
 /*******************************************************************************************************/
@@ -99,43 +101,45 @@ unordered_map<int, unsigned char> huffmanTables[2][2];
 
             [self.ivTest setImage:[[NSImage alloc] initWithContentsOfURL:theDoc]];
 
-            [self decodeImageWithFileURL: theDoc];
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                [self decodeImageWithFileURL: theDoc];
 
-            DQTViewController *DQTViewController = [self.parentViewController childViewControllers][1] ;
-            NSTextView *tvDQT = DQTViewController.tvDQT;
+                DQTViewController *DQTViewController = [self.parentViewController childViewControllers][1] ;
+                NSTextView *tvDQT = DQTViewController.tvDQT;
 
-            DHTViewController *DHTViewController = [self.parentViewController childViewControllers][2] ;
-            NSTextView *tvDHT = DHTViewController.tvDHT;
+                DHTViewController *DHTViewController = [self.parentViewController childViewControllers][2] ;
+                NSTextView *tvDHT = DHTViewController.tvDHT;
 
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [self.tvSOF setString:[NSString stringWithFormat:@"FFc0 SOF Marker Count:%lu%@",
-                                       frameHeaders.size(),
-                                       self.mdContent[@0xc0]]];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [self.tvSOF setString:[NSString stringWithFormat:@"FFc0 SOF Marker Count:%lu%@",
+                                           frameHeaders.size(),
+                                           self.mdContent[@0xc0]]];
 
-                [tvDHT setString:[NSString stringWithFormat:@"FFc4 DHT Marker Count:%lu%@",
-                                  huffmanHeaders.size(),
-                                  self.mdContent[@0xc4]]];
+                    [tvDHT setString:[NSString stringWithFormat:@"FFc4 DHT Marker Count:%lu%@",
+                                      huffmanHeaders.size(),
+                                      self.mdContent[@0xc4]]];
 
-                [self.tvSOS setString:[NSString stringWithFormat:@"FFda SOS Marker Count:%lu%@",
-                                       scanHeaders.size(),
-                                       self.mdContent[@0xda]]];
+                    [self.tvSOS setString:[NSString stringWithFormat:@"FFda SOS Marker Count:%lu%@",
+                                           scanHeaders.size(),
+                                           self.mdContent[@0xda]]];
 
-                [tvDQT setString:[NSString stringWithFormat:@"FFdb DQT Marker Count:%lu%@",
-                                  quantizationHeaders.size(),
-                                  self.mdContent[@0xdb]]];
+                    [tvDQT setString:[NSString stringWithFormat:@"FFdb DQT Marker Count:%lu%@",
+                                      quantizationHeaders.size(),
+                                      self.mdContent[@0xdb]]];
 
-                [self.tvDRI setString:[NSString stringWithFormat:@"FFdd DRI Marker Count:%lu%@",
-                                       restartIntervals.size(),
-                                       self.mdContent[@0xdd]]];
+                    [self.tvDRI setString:[NSString stringWithFormat:@"FFdd DRI Marker Count:%lu%@",
+                                           restartIntervals.size(),
+                                           self.mdContent[@0xdd]]];
 
-                [self.app setStringValue:[NSString stringWithFormat:@"App Marker Count: %lu",
-                                          applications.size()]];
-                [self.app sizeToFit];
-
-                [self.comment setStringValue:[NSString stringWithFormat:@"Comment Marker Count: %lu",
-                                          applications.size()]];
-                [self.comment sizeToFit];
-
+                    [self.app setStringValue:[NSString stringWithFormat:@"App Marker Count: %lu",
+                                              applications.size()]];
+                    [self.app sizeToFit];
+                    
+                    [self.comment setStringValue:[NSString stringWithFormat:@"Comment Marker Count: %lu",
+                                                  applications.size()]];
+                    [self.comment sizeToFit];
+                    
+                });
             });
         }
         
@@ -280,6 +284,7 @@ unordered_map<int, unsigned char> huffmanTables[2][2];
 
                     //Get Qk
                     for (int j = 0; j < 64; j++) {
+                        iQuantizationTables[parameters[i].Tq][j] = parameters[i].Qk[j];
 
                         if (j % 8 == 0)
                             self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
@@ -334,13 +339,33 @@ unordered_map<int, unsigned char> huffmanTables[2][2];
 
 /*******************************************************************************************************/
 
+struct Block {
+    int iSamples[64];
+};
+
+struct DataUnitsOfComponentInAMCU {
+    vector<Block> dataUnits;
+};
+
+struct ComponentOfJPEG {
+    int iSize;
+    int iDataUnitsSize;
+    int iTdj;
+    int iTaj;
+    int iTqi;
+    int iPreDC = 0;
+    vector<DataUnitsOfComponentInAMCU> totalDataUnits;
+};
+
+vector<ComponentOfJPEG> components;
+
+/*******************************************************************************************************/
+
 - (void)decodeScanWithFstream:(fstream&)fs {
     ScanHeader scanHeader;
     fs >> scanHeader;
 
     scanHeaders.push_back(scanHeader);
-
-
 
     //Get Ls, Ns
     self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
@@ -352,7 +377,7 @@ unordered_map<int, unsigned char> huffmanTables[2][2];
     vector<ScanComponentParameter> scanComponents = scanHeader.scanComponentParameters;
 
     //Get Cs, Td, Ta
-    for (int j = 0; j < scanComponents.size(); j++)
+    for (int j = 0; j < scanHeader.Ns; j++)
         self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
                                  [NSString stringWithFormat:
                                   @"  %d  %d  %d",
@@ -369,34 +394,240 @@ unordered_map<int, unsigned char> huffmanTables[2][2];
                               scanHeader.Ah,
                               scanHeader.Al]];
 
+
+    vector<ComponentOfJPEG> componentsInAScan;
+    int X = frameHeaders[0].X;
+    int Y = frameHeaders[0].Y;
+    int Ri = restartIntervals.back().Ri;
+    int Csj, Tdj, Taj;
+    int Hi, Vi, Tqi;
+
+    for (int i = 0; i < scanHeader.Ns; i++) {
+        ComponentOfJPEG component;
+        Csj = scanComponents[i].Csj;
+        Tdj = scanComponents[i].Tdj;
+        Taj = scanComponents[i].Taj;
+        Hi = frameHeaders[0].componentParameters[Csj - 1].Hi;
+        Vi = frameHeaders[0].componentParameters[Csj - 1].Vi;
+        Tqi = frameHeaders[0].componentParameters[Csj - 1].Tqi;
+
+        component.iSize = X / (8 * Hi) * Y / (8 * Vi);
+        component.iDataUnitsSize = Hi * Vi;
+        component.iTdj = Tdj;
+        component.iTaj = Tdj;
+        component.iTqi = Tqi;
+        componentsInAScan.push_back(component);
+    }
+
+    bool bIsFinished = false;
+
+    int iMCUCount = 1;
+    while (true) {
+        if (iMCUCount % Ri == 1) {
+            iMCUCount = 1;
+            iRemainPosition = -1;
+        }
+
+        cout << "MCU: " << iMCUCount++ << endl;
+
+        for (int i = 0; i < scanHeader.Ns; i++) {
+            DataUnitsOfComponentInAMCU dataUnitsOfComponentInAMCU;
+
+            cout << "component: " << i << endl;
+            while (dataUnitsOfComponentInAMCU.dataUnits.size() < componentsInAScan[i].iDataUnitsSize)
+                dataUnitsOfComponentInAMCU.dataUnits.push_back([self getBlock:fs component:componentsInAScan[i]]);
+            cout << endl << endl;
+
+            componentsInAScan[i].totalDataUnits.push_back(dataUnitsOfComponentInAMCU);
+
+            if (componentsInAScan[i].totalDataUnits.size() == componentsInAScan[i].iSize)
+                bIsFinished = true;
+        }
+
+        if (bIsFinished) break;
+    }
+
+    cout << "Finished..." << endl;
+
+    for (int i = 0; i < scanHeader.Ns; i++)
+        components.push_back(componentsInAScan[i]);
+
 }
 
 /*******************************************************************************************************/
 
-- (unordered_map<int, unsigned char>)generateHuffmanTableWithParameter:(HuffmanParameter)parameter {
-    unordered_map<int, unsigned char> huffmanTable;
+- (Block)getBlock:(fstream&)fs component:(ComponentOfJPEG&)component {
+    Block block;
+
+    int iSampleCount = 0;
+    int iTaj = component.iTaj;
+    int iTdj = component.iTdj;
+    vector<int> samples;
+
+    while (iSampleCount < 64) {
+        if (iSampleCount == 0) {
+            iPreDC = component.iPreDC;
+            [self getSamples:fs Tc:0 Th:iTdj samples:samples];
+            component.iPreDC = iPreDC;
+        }
+        else
+            [self getSamples:fs Tc:1 Th:iTaj samples:samples];
+
+        if (samples.size() == 0) {
+            while (iSampleCount < 64)
+                block.iSamples[iSampleCount++] = 0;
+            break;
+        }
+
+        for (int i = 0; i < samples.size(); i++)
+            block.iSamples[iSampleCount++] = samples[i];
+    }
+
+//    [self deZigZag:block andDequantization:component.iTqi];
+
+    return block;
+}
+
+/*******************************************************************************************************/
+
+int ZigZagArray[64] = {
+    0,   1,   5,  6,   14,  15,  27,  28,
+    2,   4,   7,  13,  16,  26,  29,  42,
+    3,   8,  12,  17,  25,  30,  41,  43,
+    9,   11, 18,  24,  31,  40,  44,  53,
+    10,  19, 23,  32,  39,  45,  52,  54,
+    20,  22, 33,  38,  46,  51,  55,  60,
+    21,  34, 37,  47,  50,  56,  59,  61,
+    35,  36, 48,  49,  57,  58,  62,  63
+};
+
+- (void)deZigZag:(Block)block andDequantization:(int)Tqi {
+    Block temp;
+    for (int i = 0; i < 64; i++)
+        temp.iSamples[i] = block.iSamples[i];
+
+    for (int i = 0; i < 64; i++)
+        block.iSamples[i] = temp.iSamples[ZigZagArray[i]] * iQuantizationTables[Tqi][i];
+
+}
+
+/*******************************************************************************************************/
+
+unsigned char ucRemain;
+int iRemainPosition = -1;
+int iPreDC;
+
+- (void)getSamples:(fstream&)fs Tc:(int)Tc Th:(int)Th samples:(vector<int>&)samples {
+
+    string sCode = "";
+    samples.clear();
+
+    // Find Code and get Category
+    while (true) {
+        if (iRemainPosition == -1)
+            [self remainInit:fs];
+
+        sCode += to_string((ucRemain >> iRemainPosition--) & 0x1);
+        if (huffmanTables[Tc][Th].count(sCode))
+            break;
+    }
+
+    unsigned char ucCategory = huffmanTables[Tc][Th][sCode];
+
+    // Get coefficient
+    if (iRemainPosition == -1)
+        [self remainInit:fs];
+
+    bool bSign = false;
+    int iExtraBit = (!Tc) ? ucCategory : ucCategory & 0xF;
+    int iOffSet = 0;
+
+    if (iExtraBit)
+        bSign = (ucRemain >> iRemainPosition--) & 0x1;
+
+    while (iExtraBit -1 > 0) {
+        if (iRemainPosition == -1)
+            [self remainInit:fs];
+        iOffSet = ((ucRemain >> iRemainPosition--) & 0x1) + (iOffSet << 1);
+        iExtraBit--;
+    }
+
+    iExtraBit = (!Tc) ? ucCategory : ucCategory & 0xF;
+
+    if (iExtraBit)
+        iOffSet = bSign ? iOffSet + pow(2, iExtraBit - 1) : iOffSet - pow(2, iExtraBit) + 1;
+
+    if (Tc) {
+        int iRunLength = ucCategory >> 4;
+
+        cout << "RunLength: " << iRunLength << " AC: " << iOffSet << endl;
+
+        if (iRunLength == 0 && iOffSet == 0)
+            return ;
+
+        for (int i = 0; i < iRunLength; i++)
+            samples.push_back(0);
+    } else {
+        iOffSet += iPreDC;
+        iPreDC = iOffSet;
+
+        cout << "DC: " << iOffSet << endl;
+    }
+
+
+    samples.push_back(iOffSet);
+}
+
+/*******************************************************************************************************/
+
+- (void)remainInit:(fstream&)fs {
+    fs >> ucRemain;
+
+    if (ucRemain == 0xFF) {
+        long long int lliCurrent = fs.tellg();
+        fs >> ucRemain;
+
+        if (ucRemain >= 0xD0 && ucRemain <= 0xD7)
+            fs >> ucRemain;
+        else {
+            ucRemain = 0xFF;
+            fs.seekg(lliCurrent);
+        }
+    }
+
+    if (ucRemain == 0x0)
+        fs >> ucRemain;
+
+    iRemainPosition = 7;
+}
+
+/*******************************************************************************************************/
+
+- (unordered_map<string, unsigned char>)generateHuffmanTableWithParameter:(HuffmanParameter)parameter {
+    unordered_map<string, unsigned char> huffmanTable;
 
     int iSize = (int)parameter.Vij.size();
 
     int *iHUFFSIZE = new int[iSize + 1];
     int *iHUFFCODE = new int[iSize + 1];
-    int *iEHUFCO = new int[iSize + 1];
+    string *sEHUFCO = new string[iSize + 1];
     int *iEHUFVAL = new int[iSize + 1];
 
-    iHUFFSIZE[iSize] = iHUFFCODE[iSize] = iEHUFCO[iSize] = iEHUFVAL[iSize] = 0;
+    iHUFFSIZE[iSize] = iHUFFCODE[iSize] = iEHUFVAL[iSize] = 0;
+    sEHUFCO[iSize] = "";
 
     int iLastK = generateSizeTable(parameter.Li, iHUFFSIZE);
 
     generateCodeTable(iHUFFSIZE, iHUFFCODE);
 
-    generateEHUFCOandEHUFSI(iHUFFSIZE, iHUFFCODE, parameter.Vij, iEHUFCO, iEHUFVAL, iLastK);
+    generateEHUFCOandEHUFSI(iHUFFSIZE, iHUFFCODE, parameter.Vij, sEHUFCO, iEHUFVAL, iLastK);
 
     for (int i = 0; i < iSize; i++)
-        huffmanTable[iEHUFCO[i]] = iEHUFVAL[i];
+        huffmanTable[sEHUFCO[i]] = iEHUFVAL[i];
 
     delete[] iHUFFSIZE;
     delete[] iHUFFCODE;
-    delete[] iEHUFCO;
+    delete[] sEHUFCO;
     delete[] iEHUFVAL;
 
     return huffmanTable;
@@ -437,6 +668,7 @@ unordered_map<int, unsigned char> huffmanTables[2][2];
     restartIntervals.clear();
     applications.clear();
     comments.clear();
+    iRemainPosition = -1;
 
     for (int i = 0; i < 2; i++)
         for (int j = 0; j < 2; j++)
