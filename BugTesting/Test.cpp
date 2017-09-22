@@ -48,11 +48,9 @@ int main(){
     while (iHUFFSIZE[k] != 0);
 
    	fstream fs;
-	fs.open("images 225x225 2.jpg", fstream::in | fstream::out);
+	fs.open("images 225x225 2.jpg", fstream::in | fstream::out | fstream::binary);
 	fs.unsetf(fstream::skipws);
     fs.seekg(281);
-    
-    cout << iLASTK << endl;
     
     for (int i = 0; i < iLASTK; i++){
         if (fs.tellg() == -1) {
@@ -61,18 +59,7 @@ int main(){
         }
         fs >> ucHUFFVAL[i];
     }
-        
-    int iCount = 1;
-
-    for (int i = 0; i < iLASTK; i++){
-        cout << hex << (int)ucHUFFVAL[i] << " ";
-        if (iCount % 10 == 0)
-            cout << endl;
-        iCount++;
-    }
-        
-
- /*  
+/*        
     int *iEHUFCO = new int[iLASTK];
     int *iEHUFSI = new int[iLASTK];
     for (k=0;k < iLASTK;k++){
@@ -103,7 +90,6 @@ int main(){
         }
         cout << endl;
     }
-    
-*/	
+*/    
 	return 0;
 } 
