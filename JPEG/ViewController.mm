@@ -179,7 +179,7 @@ int iQuantizationTables[4][64];
                 //Get LF, P, Y, X, Nf
                 self.mdContent[@0xc0] =  [self.mdContent[@0xc0] stringByAppendingString:
                                           [NSString stringWithFormat:
-                                           @"\r\r%d  %d  %d  %d  %d",
+                                           @"\r\rLf:%d  P:%d  X:%d  Y:%d  Nf:%d",
                                            frameHeader.Lf,
                                            frameHeader.P,
                                            frameHeader.Y,
@@ -192,7 +192,7 @@ int iQuantizationTables[4][64];
                 for (int j = 0; j < components.size(); j++)
                     self.mdContent[@0xc0] =  [self.mdContent[@0xc0] stringByAppendingString:
                                               [NSString stringWithFormat:
-                                               @"\r%d  %d  %d  %d",
+                                               @"\rCi:%d  Hi:%d  Vi:%d  Tqi:%d",
                                                components[j].Ci,
                                                components[j].Hi,
                                                components[j].Vi,
@@ -205,16 +205,18 @@ int iQuantizationTables[4][64];
                 fs >> huffmanHeader;
                 huffmanHeaders.push_back(huffmanHeader);
 
+/*
                 //Get Lh
                 self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
                                          [NSString stringWithFormat:@"\r\r%d",
                                           huffmanHeader.Lh]];
+*/
 
                 vector<HuffmanParameter> huffmanParameter = huffmanHeader.huffmanParameters;
 
 
                 for (int j = 0; j < huffmanParameter.size(); j++) {
-
+/*
                     //Get Tc, Th
                     self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
                                              [NSString stringWithFormat:
@@ -241,7 +243,7 @@ int iQuantizationTables[4][64];
                                                  [NSString stringWithFormat:
                                                   @"%d  ",
                                                   huffmanParameter[j].Vij[k]]];
-
+*/
                     huffmanTables[huffmanParameter[j].Tc][huffmanParameter[j].Th] = [self generateHuffmanTableWithParameter:
                                                                                      huffmanParameter[j]];
                 }
@@ -257,7 +259,7 @@ int iQuantizationTables[4][64];
                 break;
 
             case SOS:
-                [self decodeScanWithFstream:fs];
+//                [self decodeScanWithFstream:fs];
                 break;
 
             case DQT: {
@@ -268,7 +270,7 @@ int iQuantizationTables[4][64];
                 //Get Lq
                 self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
                                          [NSString stringWithFormat:
-                                          @"\r\r%d",
+                                          @"\r\rLq:%d",
                                           quantizationHeader.Lq]];
 
                 vector<QuantizationParameter> parameters = quantizationHeader.quantizationParameters;
@@ -278,7 +280,7 @@ int iQuantizationTables[4][64];
                     //Get Pq, Tq
                     self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
                                              [NSString stringWithFormat:
-                                              @"\r\r%d  %d",
+                                              @"\r\rPq:%d  Tq:%d\r\rQk:",
                                               parameters[i].Pq,
                                               parameters[i].Tq]];
 
@@ -289,12 +291,12 @@ int iQuantizationTables[4][64];
                         if (j % 8 == 0)
                             self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
                                                      [NSString stringWithFormat:
-                                                      @"\r%d  ",
+                                                      @"\r%02d\t",
                                                       parameters[i].Qk[j]]];
                         else
                             self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
                                                      [NSString stringWithFormat:
-                                                      @"%d  ",
+                                                      @"%02d\t",
                                                       parameters[i].Qk[j]]];
 
                     }
@@ -316,7 +318,7 @@ int iQuantizationTables[4][64];
                 //Get Lr, Ri
                 self.mdContent[@0xdd] = [self.mdContent[@0xdd] stringByAppendingString:
                                          [NSString stringWithFormat:
-                                          @"\r\r%d  %d",
+                                          @"\r\rLr:%d  Ri:%d",
                                           restartInterval.Lr,
                                           restartInterval.Ri]];
 
@@ -370,7 +372,7 @@ vector<ComponentOfJPEG> components;
     //Get Ls, Ns
     self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
                              [NSString stringWithFormat:
-                              @"\r\r%d  %d",
+                              @"\r\rLs:%d  Ns:%d",
                               scanHeader.Ls,
                               scanHeader.Ns]];
 
@@ -380,7 +382,7 @@ vector<ComponentOfJPEG> components;
     for (int j = 0; j < scanHeader.Ns; j++)
         self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
                                  [NSString stringWithFormat:
-                                  @"  %d  %d  %d",
+                                  @"\rCs:%d  Td:%d  Ta:%d",
                                   scanComponents[j].Csj,
                                   scanComponents[j].Tdj,
                                   scanComponents[j].Taj]];
@@ -388,7 +390,7 @@ vector<ComponentOfJPEG> components;
     //Get Ss, Se, Ah, Al
     self.mdContent[@0xda] = [self.mdContent[@0xda] stringByAppendingString:
                              [NSString stringWithFormat:
-                              @"  %d  %d  %d  \%d",
+                              @"\rSs:%d  Se:%d  Ah:%d  Al:%d",
                               scanHeader.Ss,
                               scanHeader.Se,
                               scanHeader.Ah,
@@ -401,6 +403,7 @@ vector<ComponentOfJPEG> components;
     int Ri = restartIntervals.back().Ri;
     int Csj, Tdj, Taj;
     int Hi, Vi, Tqi;
+
 
     for (int i = 0; i < scanHeader.Ns; i++) {
         ComponentOfJPEG component;
@@ -436,6 +439,7 @@ vector<ComponentOfJPEG> components;
             cout << "component: " << i << endl;
             while (dataUnitsOfComponentInAMCU.dataUnits.size() < componentsInAScan[i].iDataUnitsSize)
                 dataUnitsOfComponentInAMCU.dataUnits.push_back([self getBlock:fs component:componentsInAScan[i]]);
+
             cout << endl << endl;
 
             componentsInAScan[i].totalDataUnits.push_back(dataUnitsOfComponentInAMCU);
@@ -451,6 +455,7 @@ vector<ComponentOfJPEG> components;
 
     for (int i = 0; i < scanHeader.Ns; i++)
         components.push_back(componentsInAScan[i]);
+
 
 }
 
@@ -560,7 +565,7 @@ int iPreDC;
     if (Tc) {
         int iRunLength = ucCategory >> 4;
 
-        cout << "RunLength: " << iRunLength << " AC: " << iOffSet << endl;
+//        cout << "RunLength: " << iRunLength << " AC: " << iOffSet << endl;
 
         if (iRunLength == 0 && iOffSet == 0)
             return ;
@@ -571,7 +576,7 @@ int iPreDC;
         iOffSet += iPreDC;
         iPreDC = iOffSet;
 
-        cout << "DC: " << iOffSet << endl;
+//        cout << "DC: " << iOffSet << endl;
     }
 
 
@@ -624,6 +629,16 @@ int iPreDC;
 
     for (int i = 0; i < iSize; i++)
         huffmanTable[sEHUFCO[i]] = iEHUFVAL[i];
+
+    self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+                             [NSString stringWithFormat:@"\r\r%-16s\t\t%8s",
+                             "Category", "Codeword"]];
+
+    for (int i = 0; i < iSize; i++) {
+        self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+                                 [NSString stringWithFormat:@"\r%-40X%s",
+                                  huffmanTable[sEHUFCO[i]], sEHUFCO[i].c_str()]];
+    }
 
     delete[] iHUFFSIZE;
     delete[] iHUFFCODE;
