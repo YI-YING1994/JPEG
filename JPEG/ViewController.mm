@@ -152,7 +152,7 @@ int iQuantizationTables[4][64];
     [self reset];
 
     fstream fs;
-    fs.open([url.path UTF8String], fstream::in | fstream::out);
+    fs.open([url.path UTF8String], fstream::in | fstream::out | fstream::binary);
     fs.unsetf(fstream::skipws);
 
     unsigned char cMarker;
@@ -259,7 +259,7 @@ int iQuantizationTables[4][64];
                 break;
 
             case SOS:
-//                [self decodeScanWithFstream:fs];
+                [self decodeScanWithFstream:fs];
                 break;
 
             case DQT: {
@@ -398,15 +398,17 @@ vector<ComponentOfJPEG> components;
 
 
     vector<ComponentOfJPEG> componentsInAScan;
-    int X = frameHeaders[0].X;
-    int Y = frameHeaders[0].Y;
-    int Ri = restartIntervals.back().Ri;
+    int X;
+    int Y;
+    int Ri = (restartIntervals.size()) ? restartIntervals.back().Ri : 1;
     int Csj, Tdj, Taj;
     int Hi, Vi, Tqi;
 
 
     for (int i = 0; i < scanHeader.Ns; i++) {
         ComponentOfJPEG component;
+        X = frameHeaders[0].X;
+        Y = frameHeaders[0].Y;
         Csj = scanComponents[i].Csj;
         Tdj = scanComponents[i].Tdj;
         Taj = scanComponents[i].Taj;
@@ -414,12 +416,18 @@ vector<ComponentOfJPEG> components;
         Vi = frameHeaders[0].componentParameters[Csj - 1].Vi;
         Tqi = frameHeaders[0].componentParameters[Csj - 1].Tqi;
 
-        component.iSize = X / (8 * Hi) * Y / (8 * Vi);
+        X = (X % 8 == 0) ? X / 8 : (X + 8 - X % 8) / 8;
+        Y = (Y % 8 == 0) ? Y / 8 : (Y + 8 - Y % 8) / 8;
+        X = (X % Hi == 0) ? X / Hi : (X + Hi - X % Hi) / Hi;
+        Y = (Y % Vi == 0) ? Y / Vi : (Y + Vi - Y % Vi) / Vi;
+
+        component.iSize = X * Y;
         component.iDataUnitsSize = Hi * Vi;
         component.iTdj = Tdj;
-        component.iTaj = Tdj;
+        component.iTaj = Taj;
         component.iTqi = Tqi;
         componentsInAScan.push_back(component);
+        cout << "Tdj: " << Tdj << " Taj: " << Taj << endl;
     }
 
     bool bIsFinished = false;
@@ -436,11 +444,10 @@ vector<ComponentOfJPEG> components;
         for (int i = 0; i < scanHeader.Ns; i++) {
             DataUnitsOfComponentInAMCU dataUnitsOfComponentInAMCU;
 
-            cout << "component: " << i << endl;
+            cout << "component start : " << i << " tellg: " << fs.tellg() << endl;
             while (dataUnitsOfComponentInAMCU.dataUnits.size() < componentsInAScan[i].iDataUnitsSize)
-                dataUnitsOfComponentInAMCU.dataUnits.push_back([self getBlock:fs component:componentsInAScan[i]]);
-
-            cout << endl << endl;
+                dataUnitsOfComponentInAMCU.dataUnits.push_back([self getBlock:fs
+                                                                    component:componentsInAScan[i]]);
 
             componentsInAScan[i].totalDataUnits.push_back(dataUnitsOfComponentInAMCU);
 
@@ -455,7 +462,6 @@ vector<ComponentOfJPEG> components;
 
     for (int i = 0; i < scanHeader.Ns; i++)
         components.push_back(componentsInAScan[i]);
-
 
 }
 
@@ -488,7 +494,11 @@ vector<ComponentOfJPEG> components;
             block.iSamples[iSampleCount++] = samples[i];
     }
 
-//    [self deZigZag:block andDequantization:component.iTqi];
+    [self deZigZag:block andDequantization:component.iTqi];
+
+    for (int i = 0; i < 8; i++, cout << endl)
+        for (int j = 0; j < 8; j++)
+            cout << block.iSamples[i*8 +j] << " ";
 
     return block;
 }
@@ -506,18 +516,17 @@ int ZigZagArray[64] = {
     35,  36, 48,  49,  57,  58,  62,  63
 };
 
-- (void)deZigZag:(Block)block andDequantization:(int)Tqi {
+- (void)deZigZag:(Block&)block andDequantization:(int)Tqi {
     Block temp;
     for (int i = 0; i < 64; i++)
         temp.iSamples[i] = block.iSamples[i];
 
     for (int i = 0; i < 64; i++)
-        block.iSamples[i] = temp.iSamples[ZigZagArray[i]] * iQuantizationTables[Tqi][i];
+        block.iSamples[i] = temp.iSamples[ZigZagArray[i]];// * iQuantizationTables[Tqi][i];
 
 }
 
 /*******************************************************************************************************/
-
 unsigned char ucRemain;
 int iRemainPosition = -1;
 int iPreDC;
@@ -527,6 +536,7 @@ int iPreDC;
     string sCode = "";
     samples.clear();
 
+#warning Error is here
     // Find Code and get Category
     while (true) {
         if (iRemainPosition == -1)
@@ -578,7 +588,6 @@ int iPreDC;
 
 //        cout << "DC: " << iOffSet << endl;
     }
-
 
     samples.push_back(iOffSet);
 }
