@@ -360,6 +360,9 @@ struct ComponentOfJPEG {
 };
 
 vector<ComponentOfJPEG> components;
+unsigned char ucRemain, ucNext;
+int iRemainPosition;
+int iPreDC;
 
 /*******************************************************************************************************/
 
@@ -431,13 +434,13 @@ vector<ComponentOfJPEG> components;
     }
 
     bool bIsFinished = false;
-
     int iMCUCount = 1;
+    iRemainPosition = -1;
+    unsigned char ucRST;
+
     while (true) {
-        if (iMCUCount % Ri == 1) {
+        if (iMCUCount % Ri == 1)
             iMCUCount = 1;
-            iRemainPosition = -1;
-        }
 
         cout << "MCU: " << iMCUCount++ << endl;
 
@@ -456,6 +459,15 @@ vector<ComponentOfJPEG> components;
         }
 
         if (bIsFinished) break;
+
+        if (iMCUCount == Ri+1) {
+            iRemainPosition = -1;
+            componentsInAScan[0].iPreDC = 0;
+            componentsInAScan[1].iPreDC = 0;
+            componentsInAScan[2].iPreDC = 0;
+            fs >> ucRST >> ucRST;
+        }
+
     }
 
     cout << "Finished..." << endl;
@@ -527,16 +539,12 @@ int ZigZagArray[64] = {
 }
 
 /*******************************************************************************************************/
-unsigned char ucRemain;
-int iRemainPosition = -1;
-int iPreDC;
 
 - (void)getSamples:(fstream&)fs Tc:(int)Tc Th:(int)Th samples:(vector<int>&)samples {
 
     string sCode = "";
     samples.clear();
 
-#warning Error is here
     // Find Code and get Category
     while (true) {
         if (iRemainPosition == -1)
@@ -595,24 +603,12 @@ int iPreDC;
 /*******************************************************************************************************/
 
 - (void)remainInit:(fstream&)fs {
-    fs >> ucRemain;
-
-    if (ucRemain == 0xFF) {
-        long long int lliCurrent = fs.tellg();
-        fs >> ucRemain;
-
-        if (ucRemain >= 0xD0 && ucRemain <= 0xD7)
-            fs >> ucRemain;
-        else {
-            ucRemain = 0xFF;
-            fs.seekg(lliCurrent);
-        }
-    }
-
-    if (ucRemain == 0x0)
-        fs >> ucRemain;
 
     iRemainPosition = 7;
+    fs >> ucRemain;
+
+    if (ucRemain == 0xFF)
+        fs >> ucNext;
 }
 
 /*******************************************************************************************************/
@@ -692,7 +688,6 @@ int iPreDC;
     restartIntervals.clear();
     applications.clear();
     comments.clear();
-    iRemainPosition = -1;
 
     for (int i = 0; i < 2; i++)
         for (int j = 0; j < 2; j++)
