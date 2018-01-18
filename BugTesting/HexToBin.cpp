@@ -26,5 +26,5 @@ int main()
 	table[' '] = "";
 	getline(cin, input);
 	for(int i=0;i<input.size();i++)
-		cout<<table[input[i]];
+		cout<<table[input[i]] << " ";
 } 

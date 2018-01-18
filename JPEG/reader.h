@@ -51,7 +51,7 @@ struct ComponentParameter {
     unsigned char Tqi;
 };
 
-istream& operator>> (istream& s, ComponentParameter& val);
+istream& operator>> (istream &s, ComponentParameter &val);
 
 struct FrameHeader {
     unsigned char marker = SOF;
@@ -63,7 +63,7 @@ struct FrameHeader {
     vector<ComponentParameter> componentParameters;
 };
 
-istream& operator>> (istream& s, FrameHeader& val);
+istream& operator>> (istream &s, FrameHeader &val);
 
 /*******************************************************************************************************/
 #pragma mark- ScanHeader
@@ -74,7 +74,7 @@ struct ScanComponentParameter {
     unsigned char Taj;
 };
 
-istream& operator>> (istream& s, ScanComponentParameter& val);
+istream& operator>> (istream &s, ScanComponentParameter &val);
 
 struct ScanHeader {
     unsigned char marker = SOS;
@@ -87,7 +87,7 @@ struct ScanHeader {
     unsigned char Al;
 };
 
-istream& operator>> (istream& s, ScanHeader& val);
+istream& operator>> (istream &s, ScanHeader &val);
 
 /*******************************************************************************************************/
 #pragma mark- QuantizationTable
@@ -98,7 +98,7 @@ struct QuantizationParameter {
     unsigned short Qk[64];
 };
 
-istream& operator>> (istream& s, QuantizationParameter& val);
+istream& operator>> (istream &s, QuantizationParameter &val);
 
 struct QuantizationHeader {
     unsigned char marker = DQT;
@@ -106,7 +106,7 @@ struct QuantizationHeader {
     vector<QuantizationParameter> quantizationParameters;
 };
 
-istream& operator>> (istream& s, QuantizationHeader& val);
+istream& operator>> (istream &s, QuantizationHeader &val);
 
 /*******************************************************************************************************/
 #pragma mark- HuffmanTable
@@ -118,7 +118,7 @@ struct HuffmanParameter {
     vector<unsigned char> Vij;
 };
 
-istream& operator>> (istream& s, HuffmanParameter& val);
+istream& operator>> (istream &s, HuffmanParameter &val);
 
 struct HuffmanHeader {
     unsigned char marker = DHT;
@@ -127,7 +127,7 @@ struct HuffmanHeader {
 
 };
 
-istream& operator>> (istream& s, HuffmanHeader& val);
+istream& operator>> (istream &s, HuffmanHeader &val);
 
 /*******************************************************************************************************/
 #pragma mark- ArithmeticTable
@@ -138,7 +138,7 @@ struct ArithmeticParameter {
     unsigned char Cs;
 };
 
-istream& operator>> (istream& s, ArithmeticParameter& val);
+istream& operator>> (istream &s, ArithmeticParameter &val);
 
 struct ArithmeticTable {
     unsigned char marker = DAC;
@@ -146,7 +146,7 @@ struct ArithmeticTable {
     vector<ArithmeticParameter> arithmeticParameters;
 };
 
-istream& operator>> (istream& s, ArithmeticTable& val);
+istream& operator>> (istream &s, ArithmeticTable &val);
 
 /*******************************************************************************************************/
 #pragma mark- RestartInterval
@@ -157,7 +157,7 @@ struct RestartInterval {
     unsigned short Ri;
 };
 
-istream& operator>> (istream& s, RestartInterval& val);
+istream& operator>> (istream &s, RestartInterval &val);
 
 /*******************************************************************************************************/
 #pragma mark- CommentSegment
@@ -168,7 +168,7 @@ struct CommentSegment {
     vector<unsigned char> Cmi;
 };
 
-istream& operator>> (istream& s, CommentSegment& val);
+istream& operator>> (istream &s, CommentSegment &val);
 
 /*******************************************************************************************************/
 #pragma mark- Application
@@ -179,7 +179,7 @@ struct Application {
     vector<unsigned char> Api;
 };
 
-istream& operator>> (istream& s, Application& val);
+istream& operator>> (istream &s, Application &val);
 
 /*******************************************************************************************************/
 #pragma mark- DefineNumberOfLine
@@ -190,6 +190,6 @@ struct DefineNumberOfLine {
     unsigned short NL;
 };
 
-istream& operator>> (istream& s, DefineNumberOfLine& val);
+istream& operator>> (istream &s, DefineNumberOfLine &val);
 
 /*******************************************************************************************************/

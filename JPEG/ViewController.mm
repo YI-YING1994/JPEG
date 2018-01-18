@@ -151,6 +151,7 @@ int iQuantizationTables[4][64];
 - (void)decodeImageWithFileURL:(NSURL *)url {
     [self reset];
 
+    // Declare fstream object to read binary data
     fstream fs;
     fs.open([url.path UTF8String], fstream::in | fstream::out | fstream::binary);
     fs.unsetf(fstream::skipws);
@@ -244,8 +245,7 @@ int iQuantizationTables[4][64];
                                                   @"%d  ",
                                                   huffmanParameter[j].Vij[k]]];
 */
-                    huffmanTables[huffmanParameter[j].Tc][huffmanParameter[j].Th] = [self generateHuffmanTableWithParameter:
-                                                                                     huffmanParameter[j]];
+                    huffmanTables[huffmanParameter[j].Tc][huffmanParameter[j].Th] = [self generateHuffmanTableWithParameter:huffmanParameter[j]];
                 }
 
 
@@ -434,7 +434,7 @@ int iPreDC;
     }
 
     bool bIsFinished = false;
-    int iMCUCount = 1;
+    int iMCUCount = 1, iCount = 1;
     iRemainPosition = -1;
     unsigned char ucRST;
 
@@ -442,7 +442,8 @@ int iPreDC;
         if (iMCUCount % Ri == 1)
             iMCUCount = 1;
 
-        cout << "MCU: " << iMCUCount++ << endl;
+        iMCUCount++;
+        cout << "MCU: " << iCount++ << endl;
 
         for (int i = 0; i < scanHeader.Ns; i++) {
             DataUnitsOfComponentInAMCU dataUnitsOfComponentInAMCU;
@@ -461,11 +462,14 @@ int iPreDC;
         if (bIsFinished) break;
 
         if (iMCUCount == Ri+1) {
+            cout << "tellg: " << fs.tellg() << endl;
+            cout << hex << (int)ucRemain << " " << (int)ucNext << " iRemain: " << dec << iRemainPosition << endl;
+
             iRemainPosition = -1;
+            fs >> ucRST >> ucRST;
             componentsInAScan[0].iPreDC = 0;
             componentsInAScan[1].iPreDC = 0;
             componentsInAScan[2].iPreDC = 0;
-            fs >> ucRST >> ucRST;
         }
 
     }
@@ -510,7 +514,7 @@ int iPreDC;
 
     for (int i = 0; i < 8; i++, cout << endl)
         for (int j = 0; j < 8; j++)
-            cout << block.iSamples[i*8 +j] << " ";
+            cout << block.iSamples[i*8 +j] << "\t";
 
     return block;
 }
@@ -557,17 +561,15 @@ int ZigZagArray[64] = {
 
     unsigned char ucCategory = huffmanTables[Tc][Th][sCode];
 
-    // Get coefficient
-    if (iRemainPosition == -1)
-        [self remainInit:fs];
-
     bool bSign = false;
     int iExtraBit = (!Tc) ? ucCategory : ucCategory & 0xF;
     int iOffSet = 0;
 
-    if (iExtraBit)
+    if (iExtraBit) {
+        if (iRemainPosition == -1)
+            [self remainInit:fs];
         bSign = (ucRemain >> iRemainPosition--) & 0x1;
-
+    }
     while (iExtraBit -1 > 0) {
         if (iRemainPosition == -1)
             [self remainInit:fs];
