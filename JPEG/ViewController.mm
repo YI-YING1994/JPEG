@@ -11,6 +11,7 @@
 #import <unordered_map>
 #import "huffman.h"
 #import "reader.h"
+#import "NSImage+cplusplus.h"
 #import "ViewController.h"
 #import "DQTViewController.h"
 #import "DHTViewController.h"
@@ -99,45 +100,45 @@ int iQuantizationTables[4][64];
 
             NSLog(@"%@", theDoc);
 
-            [self.ivTest setImage:[[NSImage alloc] initWithContentsOfURL:theDoc]];
+//            [weak_self.ivTest setImage:[[NSImage alloc] initWithContentsOfURL:theDoc]];
 
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                [self decodeImageWithFileURL: theDoc];
+                [weak_self decodeImageWithFileURL: theDoc];
 
-                DQTViewController *DQTViewController = [self.parentViewController childViewControllers][1] ;
+                DQTViewController *DQTViewController = [weak_self.parentViewController childViewControllers][1] ;
                 NSTextView *tvDQT = DQTViewController.tvDQT;
 
-                DHTViewController *DHTViewController = [self.parentViewController childViewControllers][2] ;
+                DHTViewController *DHTViewController = [weak_self.parentViewController childViewControllers][2] ;
                 NSTextView *tvDHT = DHTViewController.tvDHT;
 
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    [self.tvSOF setString:[NSString stringWithFormat:@"FFc0 SOF Marker Count:%lu%@",
+                    [weak_self.tvSOF setString:[NSString stringWithFormat:@"FFc0 SOF Marker Count:%lu%@",
                                            frameHeaders.size(),
-                                           self.mdContent[@0xc0]]];
+                                           weak_self.mdContent[@0xc0]]];
 
                     [tvDHT setString:[NSString stringWithFormat:@"FFc4 DHT Marker Count:%lu%@",
                                       huffmanHeaders.size(),
-                                      self.mdContent[@0xc4]]];
+                                      weak_self.mdContent[@0xc4]]];
 
-                    [self.tvSOS setString:[NSString stringWithFormat:@"FFda SOS Marker Count:%lu%@",
+                    [weak_self.tvSOS setString:[NSString stringWithFormat:@"FFda SOS Marker Count:%lu%@",
                                            scanHeaders.size(),
-                                           self.mdContent[@0xda]]];
+                                           weak_self.mdContent[@0xda]]];
 
                     [tvDQT setString:[NSString stringWithFormat:@"FFdb DQT Marker Count:%lu%@",
                                       quantizationHeaders.size(),
-                                      self.mdContent[@0xdb]]];
+                                      weak_self.mdContent[@0xdb]]];
 
-                    [self.tvDRI setString:[NSString stringWithFormat:@"FFdd DRI Marker Count:%lu%@",
+                    [weak_self.tvDRI setString:[NSString stringWithFormat:@"FFdd DRI Marker Count:%lu%@",
                                            restartIntervals.size(),
-                                           self.mdContent[@0xdd]]];
+                                           weak_self.mdContent[@0xdd]]];
 
-                    [self.app setStringValue:[NSString stringWithFormat:@"App Marker Count: %lu",
+                    [weak_self.app setStringValue:[NSString stringWithFormat:@"App Marker Count: %lu",
                                               applications.size()]];
-                    [self.app sizeToFit];
+                    [weak_self.app sizeToFit];
                     
-                    [self.comment setStringValue:[NSString stringWithFormat:@"Comment Marker Count: %lu",
+                    [weak_self.comment setStringValue:[NSString stringWithFormat:@"Comment Marker Count: %lu",
                                                   applications.size()]];
-                    [self.comment sizeToFit];
+                    [weak_self.comment sizeToFit];
                     
                 });
             });
@@ -350,8 +351,13 @@ struct DataUnitsOfComponentInAMCU {
 };
 
 struct ComponentOfJPEG {
-    int iSize;
-    int iDataUnitsSize;
+    int X;
+    int Y;
+    int H;
+    int V;
+    int size() { return X * Y; }
+    int dataUnitsSize() { return H * V; }
+
     int iTdj;
     int iTaj;
     int iTqi;
@@ -424,8 +430,10 @@ int iPreDC;
         X = (X % Hi == 0) ? X / Hi : (X + Hi - X % Hi) / Hi;
         Y = (Y % Vi == 0) ? Y / Vi : (Y + Vi - Y % Vi) / Vi;
 
-        component.iSize = X * Y;
-        component.iDataUnitsSize = Hi * Vi;
+        component.X = X;
+        component.Y = Y;
+        component.H = Hi;
+        component.V = Vi;
         component.iTdj = Tdj;
         component.iTaj = Taj;
         component.iTqi = Tqi;
@@ -449,13 +457,13 @@ int iPreDC;
             DataUnitsOfComponentInAMCU dataUnitsOfComponentInAMCU;
 
             cout << "component start : " << i << " tellg: " << fs.tellg() << endl;
-            while (dataUnitsOfComponentInAMCU.dataUnits.size() < componentsInAScan[i].iDataUnitsSize)
+            while (dataUnitsOfComponentInAMCU.dataUnits.size() < componentsInAScan[i].dataUnitsSize())
                 dataUnitsOfComponentInAMCU.dataUnits.push_back([self getBlock:fs
                                                                     component:componentsInAScan[i]]);
 
             componentsInAScan[i].totalDataUnits.push_back(dataUnitsOfComponentInAMCU);
 
-            if (componentsInAScan[i].totalDataUnits.size() == componentsInAScan[i].iSize)
+            if (componentsInAScan[i].totalDataUnits.size() == componentsInAScan[i].size())
                 bIsFinished = true;
         }
 
@@ -476,9 +484,36 @@ int iPreDC;
 
     cout << "Finished..." << endl;
 
+    Byte *data = [self transformComponentToByteArray:componentsInAScan[0]];
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.ivTest setImage:[NSImage imageWithData:data row: componentsInAScan[0].X * 8 andColumn: componentsInAScan[0].Y * 8]];
+    });
+
     for (int i = 0; i < scanHeader.Ns; i++)
         components.push_back(componentsInAScan[i]);
 
+}
+
+/*******************************************************************************************************/
+
+- (Byte *)transformComponentToByteArray:(ComponentOfJPEG)component {
+    Byte *data = (Byte *)malloc(component.X * component.Y * 64);
+
+    for (int x = 0; x < component.X; x++)
+        for (int y = 0; y < component.Y; y++, cout << endl)
+            for (int i = 0; i < 8; i++, cout << endl)
+                for (int j = 0; j < 8; j++)
+                    cout << component.totalDataUnits[x * component.Y + y].dataUnits[0].iSamples[i * 8 + j] << "\t";
+
+
+    for (int x = 0; x < component.X; x++)
+        for (int y = 0; y < component.Y; y++)
+            for (int i = 0; i < 8; i++)
+                for (int j = 0; j < 8; j++)
+                    data[i * 8 * component.Y + x * 64 * component.Y + j + y * 8] =
+                    component.totalDataUnits[x * component.Y + y].dataUnits[0].iSamples[i * 8 + j];
+    return data;
 }
 
 /*******************************************************************************************************/
@@ -511,35 +546,14 @@ int iPreDC;
     }
 
     [self deZigZag:block andDequantization:component.iTqi];
+    [self IDCT:block];
 
-    for (int i = 0; i < 8; i++, cout << endl)
-        for (int j = 0; j < 8; j++)
-            cout << block.iSamples[i*8 +j] << "\t";
+    //    for (int i = 0; i < 8; i++, cout << endl)
+    //        for (int j = 0; j < 8; j++)
+    //            cout << block.iSamples[i * 8 +j] << "\t";
+
 
     return block;
-}
-
-/*******************************************************************************************************/
-
-int ZigZagArray[64] = {
-    0,   1,   5,  6,   14,  15,  27,  28,
-    2,   4,   7,  13,  16,  26,  29,  42,
-    3,   8,  12,  17,  25,  30,  41,  43,
-    9,   11, 18,  24,  31,  40,  44,  53,
-    10,  19, 23,  32,  39,  45,  52,  54,
-    20,  22, 33,  38,  46,  51,  55,  60,
-    21,  34, 37,  47,  50,  56,  59,  61,
-    35,  36, 48,  49,  57,  58,  62,  63
-};
-
-- (void)deZigZag:(Block&)block andDequantization:(int)Tqi {
-    Block temp;
-    for (int i = 0; i < 64; i++)
-        temp.iSamples[i] = block.iSamples[i];
-
-    for (int i = 0; i < 64; i++)
-        block.iSamples[i] = temp.iSamples[ZigZagArray[i]];// * iQuantizationTables[Tqi][i];
-
 }
 
 /*******************************************************************************************************/
@@ -585,7 +599,7 @@ int ZigZagArray[64] = {
     if (Tc) {
         int iRunLength = ucCategory >> 4;
 
-//        cout << "RunLength: " << iRunLength << " AC: " << iOffSet << endl;
+        //        cout << "RunLength: " << iRunLength << " AC: " << iOffSet << endl;
 
         if (iRunLength == 0 && iOffSet == 0)
             return ;
@@ -596,10 +610,63 @@ int ZigZagArray[64] = {
         iOffSet += iPreDC;
         iPreDC = iOffSet;
 
-//        cout << "DC: " << iOffSet << endl;
+        //        cout << "DC: " << iOffSet << endl;
     }
 
     samples.push_back(iOffSet);
+}
+
+/*******************************************************************************************************/
+
+int ZigZagArray[64] = {
+    0,   1,   5,  6,   14,  15,  27,  28,
+    2,   4,   7,  13,  16,  26,  29,  42,
+    3,   8,  12,  17,  25,  30,  41,  43,
+    9,   11, 18,  24,  31,  40,  44,  53,
+    10,  19, 23,  32,  39,  45,  52,  54,
+    20,  22, 33,  38,  46,  51,  55,  60,
+    21,  34, 37,  47,  50,  56,  59,  61,
+    35,  36, 48,  49,  57,  58,  62,  63
+};
+
+- (void)deZigZag:(Block &)block andDequantization:(int)Tqi {
+    Block temp;
+    for (int i = 0; i < 64; i++)
+        temp.iSamples[i] = block.iSamples[i];
+
+    for (int i = 0; i < 64; i++)
+        block.iSamples[i] = temp.iSamples[ZigZagArray[i]] * iQuantizationTables[Tqi][i];
+
+}
+
+/*******************************************************************************************************/
+- (int)fourierAtX:(int)x Y:(int)y withBlock:(Block)block {
+    double dAns = 0;
+    double dCu, dCv;
+
+    for (int v = 0; v < 8; v++)
+        for (int u = 0; u < 8; u++) {
+            dCu = (u == 0)? (1 / sqrt(2)) : 1;
+            dCv = (v == 0)? (1 / sqrt(2)) : 1;
+            dAns += (dCu * dCv * block.iSamples[v * 8 + u]
+                     * cos(((2 * x + 1) * u * M_PI) / 16) * cos(((2 * y + 1) * v * M_PI) / 16));
+        }
+    dAns = int(dAns / 4) +128;
+    if (dAns < 0) return 0;
+    if (dAns > 255) return 255;
+
+    return  dAns;
+}
+
+- (void)IDCT:(Block &)block {
+    Block temp;
+    for (int i = 0; i < 64; i++)
+        temp.iSamples[i] = block.iSamples[i];
+
+    for (int y = 0; y < 8; y++)
+        for (int x = 0; x < 8; x++)
+            block.iSamples[y * 8 + x] = [self fourierAtX:x Y:y withBlock:temp];
+
 }
 
 /*******************************************************************************************************/
