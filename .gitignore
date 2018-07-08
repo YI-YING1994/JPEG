@@ -4,6 +4,10 @@
 *.exe
 *.out
 ~*
+*.jpg
+*.jpeg
+*.docx
+xcshareddata/
 
 ## Build generated
 build/

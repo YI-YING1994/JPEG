@@ -484,15 +484,42 @@ int iPreDC;
 
     cout << "Finished..." << endl;
 
-    Byte *data = [self transformComponentToByteArray:componentsInAScan[0]];
+    Byte *bY = [self transformComponentToByteArray:componentsInAScan[0]];
+    Byte *bCb = [self transformComponentToByteArray:componentsInAScan[1]];
+    Byte *bCr = [self transformComponentToByteArray:componentsInAScan[2]];
+    Byte *data = (Byte *)malloc(3 * componentsInAScan[0].X * componentsInAScan[0].Y * 64 * sizeof(Byte));
+    int row = componentsInAScan[0].X * 8;
+    int col =  componentsInAScan[0].Y * 8;
+    int iY, iCb, iCr;
+    int iR, iG, iB;
+    for (int i = 0; i < row; i++)
+        for (int j = 0; j < col; j++) {
+            iY = [self clip: bY[i * col +j]];
+            iCb = [self clip: bCb[i * col +j]];
+            iCr = [self clip: bCr[i * col +j]];
+
+            iR = ((298 * (iY -16) + 409 * (iCr -128) +128) >> 8);
+            iG = ((298 * (iY -16) - 100 * (iCb -128) - 208 * (iCr -128) +128) >> 8);
+            iB = ((298 * (iY -16) + 516 * (iCb -128) +128) >> 8);
+
+            data[i * col * 3 + j * 3] = [self clip: iR];
+            data[i * col * 3 + j * 3 +1] = [self clip: iG];
+            data[i * col * 3 + j * 3 +2] = [self clip: iB];
+        }
 
     dispatch_async(dispatch_get_main_queue(), ^{
-        [self.ivTest setImage:[NSImage imageWithData:data row: componentsInAScan[0].X * 8 andColumn: componentsInAScan[0].Y * 8]];
+        [self.ivTest setImage:[NSImage imageWithData:data row: row andColumn: col]];
     });
 
     for (int i = 0; i < scanHeader.Ns; i++)
         components.push_back(componentsInAScan[i]);
 
+}
+
+/*******************************************************************************************************/
+
+- (int)clip:(int)value {
+    return ((value < 0) ? 0 : (value > 255) ? 255 : value);
 }
 
 /*******************************************************************************************************/
