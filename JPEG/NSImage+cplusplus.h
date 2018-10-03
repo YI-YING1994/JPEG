@@ -8,6 +8,10 @@
 
 #import <Cocoa/Cocoa.h>
 
+typedef NS_ENUM(NSInteger, ColorSpace) {
+    ColorSpaceGray = 1,
+    ColorSpaceRGB = 3
+};
 @interface NSImage (cplusplus)
-+ (instancetype)imageWithData:(Byte*)data row:(int)row andColumn:(int)col;
++ (instancetype)imageWithData:(Byte*)data row:(int)row andColumn:(int)col colorspace:(ColorSpace)space;
 @end

@@ -5,26 +5,13 @@
 // Global variable for checking markers 
 //
 /*****************************************************************************************************/
-
+#pragma mark Global variable for checking markers
 set<unsigned char> setMarkers = {
-    TEM,
-
-    SOF,
-    DHT,
-    DAC,
-
-    SOI,
-    EOI,
-
-    SOS,
-    DQT,
-    DNL,
-    DRI,
-
-    DHP,
-    EXP,
-
-    COM,
+     SOF0,  SOF1,  SOF2,  SOF3,  SOF5,
+     SOF6,  SOF7,  SOF9, SOF10, SOF11,
+    SOF13, SOF14, SOF15,   DHT,   DAC,
+      SOI,   EOI,   SOS,   DQT,   DNL,
+      DRI,   DHP,   EXP,   COM,   TEM
 };
 
 /*****************************************************************************************************/
@@ -32,7 +19,7 @@ set<unsigned char> setMarkers = {
 // Operator>> function for FrameHeader and ComponentParameter
 //
 /*****************************************************************************************************/
-
+#pragma mark - Operator>> function for FrameHeader and ComponentParameter
 istream& operator>> (istream& s, ComponentParameter& val) {
     s >> val.Ci;
 
@@ -75,7 +62,7 @@ istream& operator>> (istream& s, FrameHeader& val) {
 // Operator>> function for ScanHeader and ScanComponentParameter
 //
 /*****************************************************************************************************/
-
+#pragma mark - Operator>> function for ScanHeader and ScanComponentParameter
 istream& operator>> (istream& s, ScanComponentParameter& val) {
     s >> val.Csj;
 
@@ -119,7 +106,7 @@ istream& operator>> (istream& s, ScanHeader& val) {
 // Operator>> function for QuantizationTable and QuantizationParameter
 //
 /*****************************************************************************************************/
-
+#pragma mark - Operator>> function for QuantizationTable and QuantizationParameter
 istream& operator>> (istream& s, QuantizationParameter& val) {
 
     // Use 2 unsigned char to tempily store data which need to compute later
@@ -183,7 +170,7 @@ istream& operator>> (istream& s, QuantizationHeader& val) {
 // Operator>> function for HuffmanTable and HuffmanParameter
 //
 /*****************************************************************************************************/
-
+#pragma mark - Operator>> function for HuffmanTable and HuffmanParameter
 istream& operator>> (istream& s, HuffmanParameter& val) {
 
     // Use an unsigned char to tempily store data which need to compute later
@@ -241,7 +228,7 @@ istream& operator>> (istream& s, HuffmanHeader& val) {
 // Operator>> function for ArithmeticTable and ArithmeticParameter
 //
 /*****************************************************************************************************/
-
+#pragma mark - Operator>> function for ArithmeticTable and ArithmeticParameter
 istream& operator>> (istream& s, ArithmeticParameter& val) {
 
     // Use an unsigned char to tempily store data which need to compute later
@@ -287,7 +274,7 @@ istream& operator>> (istream& s, ArithmeticTable& val) {
 // Operator>> function for RestartInterval
 //
 /*****************************************************************************************************/
-
+#pragma mark - Operator>> function for RestartInterval
 istream& operator>> (istream& s, RestartInterval& val) {
 
     // Use 2 unsigned char to tempily store data which need to compute later
@@ -309,7 +296,7 @@ istream& operator>> (istream& s, RestartInterval& val) {
 // Operator>> function for CommentSegment
 //
 /*****************************************************************************************************/
-
+#pragma mark - Operator>> function for CommentSegment
 istream& operator>> (istream& s, CommentSegment& val) {
 
     // Use 2 unsigned char to tempily store data which need to compute later
@@ -339,7 +326,7 @@ istream& operator>> (istream& s, CommentSegment& val) {
 // Operator>> function for Application
 //
 /*****************************************************************************************************/
-
+#pragma mark - Operator>> function for Application
 istream& operator>> (istream& s, Application& val) {
 
     // Use 2 unsigned char to tempily store data which need to compute later
@@ -370,7 +357,7 @@ istream& operator>> (istream& s, Application& val) {
 // Operator>> function for DefineNumberOfLine
 //
 /*****************************************************************************************************/
-
+#pragma mark - Operator>> function for DefineNumberOfLine
 istream& operator>> (istream& s, DefineNumberOfLine& val) {
 
     unsigned char temp[2];

@@ -12,37 +12,23 @@
 
 using namespace std;
 
-#define TEM 0x01
-
-// 0X02 ~ 0xBF // RES
-
-#define SOF 0xC0
-#define DHT 0xC4
-#define DAC 0xCC
-
-#define SOI 0xD8
-#define EOI 0xD9
-
-#define SOS 0xDA
-#define DQT 0xDB
-#define DNL 0xDC
-#define DRI 0xDD
-
-#define DHP 0xDE
-#define EXP 0xDF
-
-// 0xD0 ~ 0xD7 // RST
-// 0xE0 ~ 0xEF // APP
-// 0xF0 ~ 0xFD // JPG
-
-#define COM 0xFE
+enum JPEG_Marker{
+    SOF0  = 0xC0, SOF1  = 0xC1, SOF2  = 0xC2, SOF3  = 0xC3, SOF5  = 0xC5, SOF6  = 0xC6, SOF7  = 0xC7, JPG  = 0xC8,
+    SOF9  = 0xC9, SOF10 = 0xCA, SOF11 = 0xCB, SOF13 = 0xCD, SOF14 = 0xCE, SOF15 = 0xCF, DHT   = 0xC4, DAC  = 0xCC,
+    RST0  = 0xD0, RST1  = 0xD1, RST2  = 0xD2, RST3  = 0xD3, RST4  = 0xD4, RST5  = 0xD5, RST6  = 0xD6, RST7 = 0xD7,
+    SOI   = 0xD8, EOI   = 0xD9, SOS   = 0xDA, DQT   = 0xDB, DNL   = 0xDC, DRI   = 0xDD, DHP   = 0xDE, EXP  = 0xDF,
+    APP0  = 0xE0, APP15 = 0xEF, JPG0  = 0xF0, JPG13 = 0xFD, COM   = 0xFE, TEM   = 0x01
+    // 0X02 ~ 0xBF // RES
+    // 0xE0 ~ 0xEF // APP
+    // 0xF0 ~ 0xFD // JPG
+};
 
 /*****************************************************************************************************/
 //
 // Structs used to read data and overriding operators to convenience using these structs
 //
 /*****************************************************************************************************/
-#pragma mark- FrameHeader
+#pragma mark - FrameHeader
 
 struct ComponentParameter {
     unsigned char Ci;
@@ -54,7 +40,7 @@ struct ComponentParameter {
 istream& operator>> (istream &s, ComponentParameter &val);
 
 struct FrameHeader {
-    unsigned char marker = SOF;
+    unsigned char marker = SOF0;
     unsigned short Lf;
     unsigned char P;
     unsigned short Y;

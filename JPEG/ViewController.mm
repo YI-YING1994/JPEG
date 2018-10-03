@@ -9,12 +9,13 @@
 #import <iostream>
 #import <string>
 #import <unordered_map>
-#import "huffman.h"
 #import "reader.h"
+#import "huffman.h"
 #import "NSImage+cplusplus.h"
 #import "ViewController.h"
 #import "DQTViewController.h"
 #import "DHTViewController.h"
+#import "ImageViewController.h"
 
 /*******************************************************************************************************/
 #pragma mark- Global variables
@@ -28,8 +29,9 @@ vector<RestartInterval> restartIntervals;
 vector<Application> applications;
 vector<CommentSegment> comments;
 DefineNumberOfLine defineNumberOfLine;
-unordered_map<string, unsigned char> huffmanTables[2][2];
+HuffmanTreeNode *htnHuffmanTreeRoot[2][2];
 int iQuantizationTables[4][64];
+int iLowerBoundOfCategory[2][12];
 
 
 /*******************************************************************************************************/
@@ -60,7 +62,7 @@ int iQuantizationTables[4][64];
 
     [miOpen setTarget: self];
     [miOpen setAction: @selector(pickAnImage)];
-
+    [self categoryLowerBound];
 }
 
 /*******************************************************************************************************/
@@ -148,6 +150,10 @@ int iQuantizationTables[4][64];
 }
 
 /*******************************************************************************************************/
+
+int iRi;
+bool bEOI;
+
 #pragma mark- Decode image functions
 - (void)decodeImageWithFileURL:(NSURL *)url {
     [self reset];
@@ -157,100 +163,38 @@ int iQuantizationTables[4][64];
     fs.open([url.path UTF8String], fstream::in | fstream::out | fstream::binary);
     fs.unsetf(fstream::skipws);
 
-    unsigned char cMarker;
-    cMarker = [self interpretMarkersWithStream:fs];
+    unsigned char ucMarker;
+    ucMarker = [self interpretMarkersWithStream:fs];
+    if (ucMarker != SOI) return;
 
-    if (cMarker != SOI) return;
+    bEOI = false;
+    iRi = 0;
+    bool bIsSupport = true;
+    while (!bEOI && bIsSupport) {
+        ucMarker = [self interpretMarkersWithStream:fs];
 
-    while ((cMarker = [self interpretMarkersWithStream:fs]) && cMarker != EOI) {
+        if (ucMarker >= 0xE0 && ucMarker <= 0xEF)
+            [self applicationHeaderHandler: fs marker: ucMarker];
 
-        if (cMarker >= 0xE0 && cMarker <= 0xEF) {
-            Application application;
-            application.marker = cMarker;
-            fs >> application;
 
-            applications.push_back(application);
-        }
-
-        switch (cMarker) {
-            case SOF: {
-                FrameHeader frameHeader;
-                fs >> frameHeader;
-                frameHeaders.push_back(frameHeader);
-
-                //Get LF, P, Y, X, Nf
-                self.mdContent[@0xc0] =  [self.mdContent[@0xc0] stringByAppendingString:
-                                          [NSString stringWithFormat:
-                                           @"\r\rLf:%d  P:%d  X:%d  Y:%d  Nf:%d",
-                                           frameHeader.Lf,
-                                           frameHeader.P,
-                                           frameHeader.Y,
-                                           frameHeader.X,
-                                           frameHeader.Nf]];
-
-                //Get Ci, Hi, Vi, Tqi
-                vector<ComponentParameter> components = frameHeader.componentParameters;
-
-                for (int j = 0; j < components.size(); j++)
-                    self.mdContent[@0xc0] =  [self.mdContent[@0xc0] stringByAppendingString:
-                                              [NSString stringWithFormat:
-                                               @"\rCi:%d  Hi:%d  Vi:%d  Tqi:%d",
-                                               components[j].Ci,
-                                               components[j].Hi,
-                                               components[j].Vi,
-                                               components[j].Tqi]];
+        switch (ucMarker) {
+            case SOF1: case SOF2: case SOF3: case SOF5: case SOF6: case SOF7:
+            case SOF9: case SOF10: case SOF11: case SOF13: case SOF14: case SOF15: {
+                bIsSupport = false;
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    NSAlert *alert = [[NSAlert alloc] init];
+                    alert.messageText = @"sorry we don't support this kind jpg format";
+                    [alert runModal];
+                });
             }
                 break;
 
-            case DHT: {
-                HuffmanHeader huffmanHeader;
-                fs >> huffmanHeader;
-                huffmanHeaders.push_back(huffmanHeader);
+            case SOF0:
+                [self frameHeaderHandler: fs];
+                break;
 
-/*
-                //Get Lh
-                self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
-                                         [NSString stringWithFormat:@"\r\r%d",
-                                          huffmanHeader.Lh]];
-*/
-
-                vector<HuffmanParameter> huffmanParameter = huffmanHeader.huffmanParameters;
-
-
-                for (int j = 0; j < huffmanParameter.size(); j++) {
-/*
-                    //Get Tc, Th
-                    self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
-                                             [NSString stringWithFormat:
-                                              @"\r\r%d  %d",
-                                              huffmanParameter[j].Tc,
-                                              huffmanParameter[j].Th]];
-
-                    //Get Li
-                    for (int k = 1; k < 17; k++) {
-
-                        self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
-                                                 [NSString stringWithFormat:
-                                                  @"  %d",
-                                                  huffmanParameter[j].Li[k]]];
-                    }
-
-                    self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
-                                             [NSString stringWithFormat:
-                                              @"\r"]];
-
-                    //Get V(i,j)
-                    for (int k = 0; k < huffmanParameter[j].Vij.size(); k++)
-                        self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
-                                                 [NSString stringWithFormat:
-                                                  @"%d  ",
-                                                  huffmanParameter[j].Vij[k]]];
-*/
-                    huffmanTables[huffmanParameter[j].Tc][huffmanParameter[j].Th] = [self generateHuffmanTableWithParameter:huffmanParameter[j]];
-                }
-
-
-            }
+            case DHT:
+                [self huffmanHeaderHandler: fs];
                 break;
 
             case DAC: {
@@ -263,67 +207,16 @@ int iQuantizationTables[4][64];
                 [self decodeScanWithFstream:fs];
                 break;
 
-            case DQT: {
-                QuantizationHeader quantizationHeader;
-                fs >> quantizationHeader;
-                quantizationHeaders.push_back(quantizationHeader);
-
-                //Get Lq
-                self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
-                                         [NSString stringWithFormat:
-                                          @"\r\rLq:%d",
-                                          quantizationHeader.Lq]];
-
-                vector<QuantizationParameter> parameters = quantizationHeader.quantizationParameters;
-
-                for (int i = 0; i < parameters.size(); i++) {
-
-                    //Get Pq, Tq
-                    self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
-                                             [NSString stringWithFormat:
-                                              @"\r\rPq:%d  Tq:%d\r\rQk:",
-                                              parameters[i].Pq,
-                                              parameters[i].Tq]];
-
-                    //Get Qk
-                    for (int j = 0; j < 64; j++) {
-                        iQuantizationTables[parameters[i].Tq][j] = parameters[i].Qk[j];
-
-                        if (j % 8 == 0)
-                            self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
-                                                     [NSString stringWithFormat:
-                                                      @"\r%02d\t",
-                                                      parameters[i].Qk[j]]];
-                        else
-                            self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
-                                                     [NSString stringWithFormat:
-                                                      @"%02d\t",
-                                                      parameters[i].Qk[j]]];
-
-                    }
-
-                }
-
-            }
+            case DQT:
+                [self quantizationTableHeaderHandler: fs];
                 break;
 
             case DNL:
                 fs >> defineNumberOfLine;
                 break;
 
-            case DRI: {
-                RestartInterval restartInterval;
-                fs >> restartInterval;
-                restartIntervals.push_back(restartInterval);
-
-                //Get Lr, Ri
-                self.mdContent[@0xdd] = [self.mdContent[@0xdd] stringByAppendingString:
-                                         [NSString stringWithFormat:
-                                          @"\r\rLr:%d  Ri:%d",
-                                          restartInterval.Lr,
-                                          restartInterval.Ri]];
-
-            }
+            case DRI:
+                [self restartIntervalHeaderHandler: fs];
                 break;
 
             case COM: {
@@ -334,6 +227,10 @@ int iQuantizationTables[4][64];
             }
                 break;
 
+            case EOI:
+                bEOI = true;
+                break;
+
             default:
                 break;
         }
@@ -342,33 +239,204 @@ int iQuantizationTables[4][64];
 
 /*******************************************************************************************************/
 
-struct Block {
-    int iSamples[64];
-};
+#pragma mark- Application Header Handler
+- (void)applicationHeaderHandler:(fstream&)fs marker:(unsigned char)marker{
+    Application application;
+    application.marker = marker;
+    fs >> application;
 
-struct DataUnitsOfComponentInAMCU {
-    vector<Block> dataUnits;
-};
+    applications.push_back(application);
+}
+
+/*******************************************************************************************************/
+
+#pragma mark- Huffman Header Handler
+- (void)huffmanHeaderHandler:(fstream&)fs {
+    HuffmanHeader huffmanHeader;
+    fs >> huffmanHeader;
+    huffmanHeaders.push_back(huffmanHeader);
+
+    /*
+     //Get Lh
+     self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+     [NSString stringWithFormat:@"\r\r%d",
+     huffmanHeader.Lh]];
+     */
+
+    vector<HuffmanParameter> huffmanParameter = huffmanHeader.huffmanParameters;
+
+    for (int j = 0; j < huffmanParameter.size(); j++) {
+        /*
+         //Get Tc, Th
+         self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+         [NSString stringWithFormat:
+         @"\r\r%d  %d",
+         huffmanParameter[j].Tc,
+         huffmanParameter[j].Th]];
+
+         //Get Li
+         for (int k = 1; k < 17; k++) {
+
+         self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+         [NSString stringWithFormat:
+         @"  %d",
+         huffmanParameter[j].Li[k]]];
+         }
+
+         self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+         [NSString stringWithFormat:
+         @"\r"]];
+
+         //Get V(i,j)
+         for (int k = 0; k < huffmanParameter[j].Vij.size(); k++)
+         self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+         [NSString stringWithFormat:
+         @"%d  ",
+         huffmanParameter[j].Vij[k]]];
+         */
+        htnHuffmanTreeRoot[huffmanParameter[j].Tc][huffmanParameter[j].Th] = [self generateHuffmanTableWithParameter:huffmanParameter[j]];
+    }
+}
+
+/*******************************************************************************************************/
+
+#pragma mark- QuantizationTable Header Handler
+- (void)quantizationTableHeaderHandler:(fstream&)fs {
+    QuantizationHeader quantizationHeader;
+    fs >> quantizationHeader;
+    quantizationHeaders.push_back(quantizationHeader);
+
+    //Get Lq
+    self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
+                             [NSString stringWithFormat:
+                              @"\r\rLq:%d",
+                              quantizationHeader.Lq]];
+
+    vector<QuantizationParameter> parameters = quantizationHeader.quantizationParameters;
+
+    for (int i = 0; i < parameters.size(); i++) {
+
+        //Get Pq, Tq
+        self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
+                                 [NSString stringWithFormat:
+                                  @"\r\rPq:%d  Tq:%d\r\rQk:",
+                                  parameters[i].Pq,
+                                  parameters[i].Tq]];
+
+        //Get Qk
+        for (int j = 0; j < 64; j++) {
+            iQuantizationTables[parameters[i].Tq][j] = parameters[i].Qk[j];
+
+            if (j % 8 == 0)
+                self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
+                                         [NSString stringWithFormat:
+                                          @"\r%02d\t",
+                                          parameters[i].Qk[j]]];
+            else
+                self.mdContent[@0xdb] = [self.mdContent[@0xdb] stringByAppendingString:
+                                         [NSString stringWithFormat:
+                                          @"%02d\t",
+                                          parameters[i].Qk[j]]];
+        }
+    }
+}
+
+/*******************************************************************************************************/
+
+#pragma mark- Restart Interval Header Handler
+- (void)restartIntervalHeaderHandler:(fstream&)fs {
+    RestartInterval restartInterval;
+    fs >> restartInterval;
+    iRi = restartInterval.Ri;
+
+    restartIntervals.push_back(restartInterval);
+
+    //Get Lr, Ri
+    self.mdContent[@0xdd] = [self.mdContent[@0xdd] stringByAppendingString:
+                             [NSString stringWithFormat:
+                              @"\r\rLr:%d  Ri:%d",
+                              restartInterval.Lr,
+                              restartInterval.Ri]];
+}
+
+/*******************************************************************************************************/
 
 struct ComponentOfJPEG {
     int X;
     int Y;
-    int H;
-    int V;
-    int size() { return X * Y; }
-    int dataUnitsSize() { return H * V; }
-
+    int Hi;
+    int Vi;
     int iTdj;
     int iTaj;
     int iTqi;
-    int iPreDC = 0;
-    vector<DataUnitsOfComponentInAMCU> totalDataUnits;
+    int iPreDC;
+    Byte **data = nil;
+    static int Himax;
+    static int Vimax;
+    Byte*& operator [](int index) { return data[index]; };
+};
+int ComponentOfJPEG::Himax;
+int ComponentOfJPEG::Vimax;
+ComponentOfJPEG components[3];
+
+#pragma mark- Frame Header Handler
+- (void)frameHeaderHandler:(fstream&)fs {
+    FrameHeader frameHeader;
+    fs >> frameHeader;
+    frameHeaders.push_back(frameHeader);
+
+    //Get LF, P, Y, X, Nf
+    self.mdContent[@0xc0] =  [self.mdContent[@0xc0] stringByAppendingString:
+                              [NSString stringWithFormat:
+                               @"\r\rLf:%d  P:%d  Y:%d  X:%d  Nf:%d",
+                               frameHeader.Lf,
+                               frameHeader.P,
+                               frameHeader.Y,
+                               frameHeader.X,
+                               frameHeader.Nf]];
+
+    //Get Ci, Hi, Vi, Tqi
+    vector<ComponentParameter> componentParameters = frameHeader.componentParameters;
+
+    int X, Y, Ci, Hi, Vi, Tqi;
+    ComponentOfJPEG::Himax = 0;
+    ComponentOfJPEG::Vimax = 0;
+    for (int j = 0; j < componentParameters.size(); j++) {
+        X = frameHeader.X;
+        Y = frameHeader.Y;
+        Ci = componentParameters[j].Ci -1;
+        Hi = componentParameters[j].Hi;
+        Vi = componentParameters[j].Vi;
+        Tqi = componentParameters[j].Tqi;
+        if (Hi > ComponentOfJPEG::Himax) ComponentOfJPEG::Himax = Hi;
+        if (Vi > ComponentOfJPEG::Vimax) ComponentOfJPEG::Vimax = Vi;
+        components[Ci].X = X;
+        components[Ci].Y = Y;
+        components[Ci].Hi = Hi;
+        components[Ci].Vi = Vi;
+        components[Ci].iTqi = Tqi;
+        components[Ci].iPreDC = 0;
+        
+        self.mdContent[@0xc0] =  [self.mdContent[@0xc0] stringByAppendingString:
+                                  [NSString stringWithFormat:
+                                   @"\rCi:%d  Hi:%d  Vi:%d  Tqi:%d",
+                                   Ci +1,
+                                   Hi,
+                                   Vi,
+                                   Tqi]];
+    }
+
+}
+
+/*******************************************************************************************************/
+
+struct Block {
+    int iSamples[64];
+    int& operator [] (int index) { return iSamples[index]; };
 };
 
-vector<ComponentOfJPEG> components;
 unsigned char ucRemain, ucNext;
 int iRemainPosition;
-int iPreDC;
 
 /*******************************************************************************************************/
 
@@ -406,114 +474,83 @@ int iPreDC;
                               scanHeader.Al]];
 
 
-    vector<ComponentOfJPEG> componentsInAScan;
-    int X;
-    int Y;
-    int Ri = (restartIntervals.size()) ? restartIntervals.back().Ri : 1;
-    int Csj, Tdj, Taj;
-    int Hi, Vi, Tqi;
-
-
+    int MCUI = ceil((double)components[0].Y * components[0].Vi / (components[0].Vi * components[0].Vimax * 8));
+    int MCUJ = ceil((double)components[0].X * components[0].Hi / (components[0].Hi * components[0].Himax * 8));
     for (int i = 0; i < scanHeader.Ns; i++) {
-        ComponentOfJPEG component;
-        X = frameHeaders[0].X;
-        Y = frameHeaders[0].Y;
-        Csj = scanComponents[i].Csj;
-        Tdj = scanComponents[i].Tdj;
-        Taj = scanComponents[i].Taj;
-        Hi = frameHeaders[0].componentParameters[Csj - 1].Hi;
-        Vi = frameHeaders[0].componentParameters[Csj - 1].Vi;
-        Tqi = frameHeaders[0].componentParameters[Csj - 1].Tqi;
-
-        X = (X % 8 == 0) ? X / 8 : (X + 8 - X % 8) / 8;
-        Y = (Y % 8 == 0) ? Y / 8 : (Y + 8 - Y % 8) / 8;
-        X = (X % Hi == 0) ? X / Hi : (X + Hi - X % Hi) / Hi;
-        Y = (Y % Vi == 0) ? Y / Vi : (Y + Vi - Y % Vi) / Vi;
-
-        component.X = X;
-        component.Y = Y;
-        component.H = Hi;
-        component.V = Vi;
-        component.iTdj = Tdj;
-        component.iTaj = Taj;
-        component.iTqi = Tqi;
-        componentsInAScan.push_back(component);
-        cout << "Tdj: " << Tdj << " Taj: " << Taj << endl;
+        components[i].iTdj = scanComponents[i].Tdj;
+        components[i].iTaj = scanComponents[i].Taj;
+        components[i].Y = MCUI * components[i].Vi * 8;
+        components[i].X = MCUJ * components[i].Hi * 8;
+        components[i].data = new Byte*[components[i].Y];
+        for (int j = 0; j < components[i].Y; j++) components[i][j] = new Byte[components[i].X];
     }
-
-    bool bIsFinished = false;
-    int iMCUCount = 1, iCount = 1;
-    iRemainPosition = -1;
+    int iCurrentI;
+    int iCurrentJ;
+    Block block;
     unsigned char ucRST;
-
-    while (true) {
-        if (iMCUCount % Ri == 1)
-            iMCUCount = 1;
-
-        iMCUCount++;
-        cout << "MCU: " << iCount++ << endl;
-
-        for (int i = 0; i < scanHeader.Ns; i++) {
-            DataUnitsOfComponentInAMCU dataUnitsOfComponentInAMCU;
-
-            cout << "component start : " << i << " tellg: " << fs.tellg() << endl;
-            while (dataUnitsOfComponentInAMCU.dataUnits.size() < componentsInAScan[i].dataUnitsSize())
-                dataUnitsOfComponentInAMCU.dataUnits.push_back([self getBlock:fs
-                                                                    component:componentsInAScan[i]]);
-
-            componentsInAScan[i].totalDataUnits.push_back(dataUnitsOfComponentInAMCU);
-
-            if (componentsInAScan[i].totalDataUnits.size() == componentsInAScan[i].size())
-                bIsFinished = true;
+    iRemainPosition = -1;
+    cout << MCUJ << " " << MCUI << endl;
+    for (int i = 0; i < MCUI; i++) {
+        for (int j = 0; j < MCUJ; j++) {
+            for (int k = 0; k < scanHeader.Ns; k++) {
+                for (int m = 0; m < components[k].Vi; m++) {
+                    for (int n = 0; n < components[k].Hi; n++) {
+                        iCurrentI = i * components[k].Vi * 8 + m * 8;
+                        iCurrentJ = j * components[k].Hi * 8 + n * 8;
+                        [self getBlock: fs block: block component: components[k]];
+                        for (int x = 0; x < 8; x++)
+                            for (int y = 0; y < 8; y++)
+                                components[k][iCurrentI + x][iCurrentJ + y] = block[x * 8 + y];
+                    }
+                }
+            }
+            if (iRi && (i * MCUJ + j + 1) != MCUI * MCUJ
+                && (i * MCUJ + j + 1) % iRi == 0) {
+                iRemainPosition = -1;
+                components[0].iPreDC = 0;
+                components[1].iPreDC = 0;
+                components[2].iPreDC = 0;
+                fs >> ucRST >> ucRST;
+            }
         }
-
-        if (bIsFinished) break;
-
-        if (iMCUCount == Ri+1) {
-            cout << "tellg: " << fs.tellg() << endl;
-            cout << hex << (int)ucRemain << " " << (int)ucNext << " iRemain: " << dec << iRemainPosition << endl;
-
-            iRemainPosition = -1;
-            fs >> ucRST >> ucRST;
-            componentsInAScan[0].iPreDC = 0;
-            componentsInAScan[1].iPreDC = 0;
-            componentsInAScan[2].iPreDC = 0;
-        }
-
     }
-
     cout << "Finished..." << endl;
 
-    Byte *bY = [self transformComponentToByteArray:componentsInAScan[0]];
-    Byte *bCb = [self transformComponentToByteArray:componentsInAScan[1]];
-    Byte *bCr = [self transformComponentToByteArray:componentsInAScan[2]];
-    Byte *data = (Byte *)malloc(3 * componentsInAScan[0].X * componentsInAScan[0].Y * 64 * sizeof(Byte));
-    int row = componentsInAScan[0].X * 8;
-    int col =  componentsInAScan[0].Y * 8;
+    int row = components[0].Y;
+    int col = components[0].X;
+    cout << row << " " << col << endl;
+    Byte *bData = new Byte[3 * row * col];
     int iY, iCb, iCr;
     int iR, iG, iB;
-    for (int i = 0; i < row; i++)
+    for (int i = 0; i < row; i++) {
         for (int j = 0; j < col; j++) {
-            iY = [self clip: bY[i * col +j]];
-            iCb = [self clip: bCb[i * col +j]];
-            iCr = [self clip: bCr[i * col +j]];
+//            bData[i * col + j] = [self clip: components[0][i][j]];
+
+//            cout << i * components[1].Vi / components[1].Vimax << endl;
+
+            iY = components[0][i * components[0].Vi / components[0].Vimax][j * components[0].Hi / components[0].Himax];
+            iCb = components[1][i * components[1].Vi / components[1].Vimax][j * components[1].Hi / components[1].Himax];
+            iCr = components[2][i * components[2].Vi / components[2].Vimax][j * components[2].Hi / components[2].Himax];
 
             iR = ((298 * (iY -16) + 409 * (iCr -128) +128) >> 8);
             iG = ((298 * (iY -16) - 100 * (iCb -128) - 208 * (iCr -128) +128) >> 8);
             iB = ((298 * (iY -16) + 516 * (iCb -128) +128) >> 8);
 
-            data[i * col * 3 + j * 3] = [self clip: iR];
-            data[i * col * 3 + j * 3 +1] = [self clip: iG];
-            data[i * col * 3 + j * 3 +2] = [self clip: iB];
+            iR = [self clip: iR];
+            iG = [self clip: iG];
+            iB = [self clip: iB];
+
+            bData[i * col * 3 + j * 3] = iR;
+            bData[i * col * 3 + j * 3 +1] = iG;
+            bData[i * col * 3 + j * 3 +2] = iB;
         }
+    }
 
     dispatch_async(dispatch_get_main_queue(), ^{
-        [self.ivTest setImage:[NSImage imageWithData:data row: row andColumn: col]];
+        ImageViewController *imageViewController = [self.parentViewController childViewControllers][3] ;
+        NSImageView *ivImageView = imageViewController.ivResolveImage;
+        [ivImageView setImage:[NSImage imageWithData:bData row: row andColumn: col colorspace: ColorSpaceRGB]];
     });
-
-    for (int i = 0; i < scanHeader.Ns; i++)
-        components.push_back(componentsInAScan[i]);
-
 }
 
 /*******************************************************************************************************/
@@ -524,128 +561,88 @@ int iPreDC;
 
 /*******************************************************************************************************/
 
-- (Byte *)transformComponentToByteArray:(ComponentOfJPEG)component {
-    Byte *data = (Byte *)malloc(component.X * component.Y * 64);
-
-    for (int x = 0; x < component.X; x++)
-        for (int y = 0; y < component.Y; y++, cout << endl)
-            for (int i = 0; i < 8; i++, cout << endl)
-                for (int j = 0; j < 8; j++)
-                    cout << component.totalDataUnits[x * component.Y + y].dataUnits[0].iSamples[i * 8 + j] << "\t";
-
-
-    for (int x = 0; x < component.X; x++)
-        for (int y = 0; y < component.Y; y++)
-            for (int i = 0; i < 8; i++)
-                for (int j = 0; j < 8; j++)
-                    data[i * 8 * component.Y + x * 64 * component.Y + j + y * 8] =
-                    component.totalDataUnits[x * component.Y + y].dataUnits[0].iSamples[i * 8 + j];
-    return data;
-}
-
-/*******************************************************************************************************/
-
-- (Block)getBlock:(fstream&)fs component:(ComponentOfJPEG&)component {
-    Block block;
-
-    int iSampleCount = 0;
-    int iTaj = component.iTaj;
+- (void)getBlock:(fstream&)fs block:(Block&)block component:(ComponentOfJPEG&)component {
+    int iSample;
+    int iNextAC = 0;
     int iTdj = component.iTdj;
-    vector<int> samples;
+    int iTaj = component.iTaj;
 
-    while (iSampleCount < 64) {
-        if (iSampleCount == 0) {
-            iPreDC = component.iPreDC;
-            [self getSamples:fs Tc:0 Th:iTdj samples:samples];
-            component.iPreDC = iPreDC;
-        }
-        else
-            [self getSamples:fs Tc:1 Th:iTaj samples:samples];
+    for (int i = 0; i < 64; i++) block[i] = 0;
 
-        if (samples.size() == 0) {
-            while (iSampleCount < 64)
-                block.iSamples[iSampleCount++] = 0;
-            break;
-        }
+    // Decode DC
+    [self getSample: fs Tc: 0 Th: iTdj nextAC: iNextAC sample: iSample component: component];
+    block[0] = iSample;
 
-        for (int i = 0; i < samples.size(); i++)
-            block.iSamples[iSampleCount++] = samples[i];
+    // Decode AC
+    while (iNextAC < 63) {
+        [self getSample:fs Tc: 1 Th: iTaj nextAC: iNextAC sample: iSample component: component];
+        block[iNextAC] = iSample;
     }
+    [self deZigZag:block andDequantization: component.iTqi];
+    [self IDCT: block];
+//    for (int i = 0; i < 8; i++, cout << endl) for (int j = 0; j < 8; j++) cout << block[i * 8 + j] << "\t";
 
-    [self deZigZag:block andDequantization:component.iTqi];
-    [self IDCT:block];
-
-    //    for (int i = 0; i < 8; i++, cout << endl)
-    //        for (int j = 0; j < 8; j++)
-    //            cout << block.iSamples[i * 8 +j] << "\t";
-
-
-    return block;
 }
 
 /*******************************************************************************************************/
 
-- (void)getSamples:(fstream&)fs Tc:(int)Tc Th:(int)Th samples:(vector<int>&)samples {
-
-    string sCode = "";
-    samples.clear();
-
+- (void)getSample:(fstream&)fs Tc:(int)Tc Th:(int)Th nextAC:(int &)iNextAC
+           sample:(int &)sample component:(ComponentOfJPEG&)component {
+    int iCurrentBit;
+    int iPorN;
+    int iOffset = 0;
+    HuffmanTreeNode *htnCurrenNode = htnHuffmanTreeRoot[Tc][Th];
     // Find Code and get Category
-    while (true) {
-        if (iRemainPosition == -1)
-            [self remainInit:fs];
+    while (htnCurrenNode->iCategory == -1) {
+        iCurrentBit = [self getNextBit: fs];
+        if (iCurrentBit == 0) htnCurrenNode = htnCurrenNode->htnZeroSubtree;
+        else htnCurrenNode = htnCurrenNode->htnOneSubtree;
+    }
+    int iCategory = htnCurrenNode->iCategory;
 
-        sCode += to_string((ucRemain >> iRemainPosition--) & 0x1);
-        if (huffmanTables[Tc][Th].count(sCode))
-            break;
+    // DC situation
+    if (Tc == 0) {
+        if (iCategory == 0) { sample = component.iPreDC; return; }
+        iPorN = [self getNextBit: fs];
+        for (int i = 0; i < iCategory -1; i++) {
+            iCurrentBit = [self getNextBit: fs];
+            iOffset = (iOffset << 1) | iCurrentBit;
+        }
+        sample = component.iPreDC + iLowerBoundOfCategory[iPorN][iCategory] + iOffset;
+        component.iPreDC = sample;
+        return;
     }
 
-    unsigned char ucCategory = huffmanTables[Tc][Th][sCode];
+    // AC situation
+    if (iCategory == 0) { iNextAC = 63; sample = 0; return; }
+    int iRunLength = (iCategory >> 4);
+    iCategory = (iCategory & 0x0F);
 
-    bool bSign = false;
-    int iExtraBit = (!Tc) ? ucCategory : ucCategory & 0xF;
-    int iOffSet = 0;
-
-    if (iExtraBit) {
-        if (iRemainPosition == -1)
-            [self remainInit:fs];
-        bSign = (ucRemain >> iRemainPosition--) & 0x1;
+    iNextAC = iRunLength ? iNextAC + iRunLength +1 : iNextAC +1;
+    if (iCategory == 0) { sample = 0; return; }
+    iPorN = [self getNextBit: fs];
+    for (int i = 0; i < iCategory -1; i++) {
+        iCurrentBit = [self getNextBit: fs];
+        iOffset = (iOffset << 1) | iCurrentBit;
     }
-    while (iExtraBit -1 > 0) {
-        if (iRemainPosition == -1)
-            [self remainInit:fs];
-        iOffSet = ((ucRemain >> iRemainPosition--) & 0x1) + (iOffSet << 1);
-        iExtraBit--;
-    }
-
-    iExtraBit = (!Tc) ? ucCategory : ucCategory & 0xF;
-
-    if (iExtraBit)
-        iOffSet = bSign ? iOffSet + pow(2, iExtraBit - 1) : iOffSet - pow(2, iExtraBit) + 1;
-
-    if (Tc) {
-        int iRunLength = ucCategory >> 4;
-
-        //        cout << "RunLength: " << iRunLength << " AC: " << iOffSet << endl;
-
-        if (iRunLength == 0 && iOffSet == 0)
-            return ;
-
-        for (int i = 0; i < iRunLength; i++)
-            samples.push_back(0);
-    } else {
-        iOffSet += iPreDC;
-        iPreDC = iOffSet;
-
-        //        cout << "DC: " << iOffSet << endl;
-    }
-
-    samples.push_back(iOffSet);
+    sample = iLowerBoundOfCategory[iPorN][iCategory] + iOffset;
 }
 
 /*******************************************************************************************************/
 
-int ZigZagArray[64] = {
+- (void)categoryLowerBound {
+    iLowerBoundOfCategory[0][0] = 0;
+    iLowerBoundOfCategory[1][0] = 0;
+
+    for (int i = 1; i < 12; i++) {
+        iLowerBoundOfCategory[0][i] = -1 * pow(2,i) + 1;
+        iLowerBoundOfCategory[1][i] = pow(2,i-1);
+    }
+}
+
+/*******************************************************************************************************/
+
+int iInvZigZagArray[64] = {
     0,   1,   5,  6,   14,  15,  27,  28,
     2,   4,   7,  13,  16,  26,  29,  42,
     3,   8,  12,  17,  25,  30,  41,  43,
@@ -659,15 +656,15 @@ int ZigZagArray[64] = {
 - (void)deZigZag:(Block &)block andDequantization:(int)Tqi {
     Block temp;
     for (int i = 0; i < 64; i++)
-        temp.iSamples[i] = block.iSamples[i];
+        temp[i] = block[i];
 
     for (int i = 0; i < 64; i++)
-        block.iSamples[i] = temp.iSamples[ZigZagArray[i]] * iQuantizationTables[Tqi][i];
+        block[i] = temp[iInvZigZagArray[i]] * iQuantizationTables[Tqi][i];
 
 }
 
 /*******************************************************************************************************/
-- (int)fourierAtX:(int)x Y:(int)y withBlock:(Block)block {
+- (int)inv_FourierAtX:(int)x Y:(int)y withBlock:(Block)block {
     double dAns = 0;
     double dCu, dCv;
 
@@ -675,7 +672,7 @@ int ZigZagArray[64] = {
         for (int u = 0; u < 8; u++) {
             dCu = (u == 0)? (1 / sqrt(2)) : 1;
             dCv = (v == 0)? (1 / sqrt(2)) : 1;
-            dAns += (dCu * dCv * block.iSamples[v * 8 + u]
+            dAns += (dCu * dCv * block[v * 8 + u]
                      * cos(((2 * x + 1) * u * M_PI) / 16) * cos(((2 * y + 1) * v * M_PI) / 16));
         }
     dAns = int(dAns / 4) +128;
@@ -688,63 +685,83 @@ int ZigZagArray[64] = {
 - (void)IDCT:(Block &)block {
     Block temp;
     for (int i = 0; i < 64; i++)
-        temp.iSamples[i] = block.iSamples[i];
+        temp[i] = block[i];
 
     for (int y = 0; y < 8; y++)
         for (int x = 0; x < 8; x++)
-            block.iSamples[y * 8 + x] = [self fourierAtX:x Y:y withBlock:temp];
+            block[y * 8 + x] = [self inv_FourierAtX:x Y:y withBlock:temp];
 
 }
 
 /*******************************************************************************************************/
 
-- (void)remainInit:(fstream&)fs {
+- (int)getNextBit:(fstream&)fs {
 
-    iRemainPosition = 7;
-    fs >> ucRemain;
+    if (iRemainPosition == -1) {
+        iRemainPosition = 7;
+        fs >> ucRemain;
 
-    if (ucRemain == 0xFF)
-        fs >> ucNext;
+        if (ucRemain == 0xFF)
+            fs >> ucNext;
+    }
+
+    return ((ucRemain >> iRemainPosition--) & 0x1);
 }
 
 /*******************************************************************************************************/
+int iHUFFSIZE[256];
+int iHUFFCODE[256];
+int iEHUFFCODE[256];
+int iEHUFFSIZE[256];
+int iEHUFFCODEBIT[256][16];
 
-- (unordered_map<string, unsigned char>)generateHuffmanTableWithParameter:(HuffmanParameter)parameter {
-    unordered_map<string, unsigned char> huffmanTable;
+/*******************************************************************************************************/
 
-    int iSize = (int)parameter.Vij.size();
+- (HuffmanTreeNode *)generateHuffmanTableWithParameter:(HuffmanParameter)parameter {
+    HuffmanTreeNode *huffmanTable = NULL;
 
-    int *iHUFFSIZE = new int[iSize + 1];
-    int *iHUFFCODE = new int[iSize + 1];
-    string *sEHUFCO = new string[iSize + 1];
-    int *iEHUFVAL = new int[iSize + 1];
+    int iCodeLength, iCodeValue;
+    string sCodeWord;
 
-    iHUFFSIZE[iSize] = iHUFFCODE[iSize] = iEHUFVAL[iSize] = 0;
-    sEHUFCO[iSize] = "";
+    // initial global variable
+    for (int k = 0; k < 256; k++) { iHUFFSIZE[k] = iEHUFFSIZE[k] = 0; }
 
-    int iLastK = generateSizeTable(parameter.Li, iHUFFSIZE);
+    // C1 procedure
+    generateSizeTable(parameter.Li, iHUFFSIZE);
 
+    // C2 procedure
     generateCodeTable(iHUFFSIZE, iHUFFCODE);
 
-    generateEHUFCOandEHUFSI(iHUFFSIZE, iHUFFCODE, parameter.Vij, sEHUFCO, iEHUFVAL, iLastK);
+    // C3 procedure
+    generateEHUFFCODEandEHUFFSIZE(iHUFFSIZE, iHUFFCODE, parameter.Vij, iEHUFFCODE, iEHUFFSIZE);
 
-    for (int i = 0; i < iSize; i++)
-        huffmanTable[sEHUFCO[i]] = iEHUFVAL[i];
+    // transform huffman code from dec to binary
+    for (int k = 0;k < 256; k++){
+        iCodeLength = iEHUFFSIZE[k];
+        iCodeValue = iEHUFFCODE[k];
+        for (int i= iCodeLength-1; i >= 0; i--){
+            iEHUFFCODEBIT[k][i] = iCodeValue % 2;
+            iCodeValue = iCodeValue / 2;
+        }
+    }
 
+    huffmanTable = constructHuffmanTree(iEHUFFSIZE, iEHUFFCODEBIT);
+
+    // Display huffman category and code word
     self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
                              [NSString stringWithFormat:@"\r\r%-16s\t\t%8s",
                              "Category", "Codeword"]];
-
-    for (int i = 0; i < iSize; i++) {
-        self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
-                                 [NSString stringWithFormat:@"\r%-40X%s",
-                                  huffmanTable[sEHUFCO[i]], sEHUFCO[i].c_str()]];
+    for (int k = 0; k < 256; k++) {
+        iCodeLength = iEHUFFSIZE[k];
+        if (iCodeLength != 0) {
+            sCodeWord = "";
+            for (int i = 0; i < iCodeLength; i++)
+                sCodeWord += to_string(iEHUFFCODEBIT[k][i]);
+            self.mdContent[@0xc4] = [self.mdContent[@0xc4] stringByAppendingString:
+                                     [NSString stringWithFormat:@"\r%-40X%s",
+                                      k, sCodeWord.c_str()]];
+        }
     }
-
-    delete[] iHUFFSIZE;
-    delete[] iHUFFCODE;
-    delete[] sEHUFCO;
-    delete[] iEHUFVAL;
 
     return huffmanTable;
 }
@@ -752,26 +769,26 @@ int ZigZagArray[64] = {
 /*******************************************************************************************************/
 
 - (unsigned char)interpretMarkersWithStream:(fstream&)fs {
-    unsigned char cFF, cMarker;
+    unsigned char ucFF, ucMarker;
 
-    fs >> cFF;
+    fs >> ucFF;
 
-    while (fs >> cMarker) {
-        if (cFF != 0xFF) {
-            cFF = cMarker;
+    while (fs >> ucMarker) {
+        if (ucFF != 0xFF) {
+            ucFF = ucMarker;
             continue;
         }
 
-        if (setMarkers.count(cMarker))
+        if (setMarkers.count(ucMarker))
             break;
 
-        if (cMarker >= 0xE0 && cMarker <= 0xEF)
+        if (ucMarker >= 0xE0 && ucMarker <= 0xEF)
             break;
 
-        cFF = cMarker;
+        ucFF = ucMarker;
     }
 
-    return cMarker;
+    return ucMarker;
 }
 
 /*******************************************************************************************************/
@@ -784,10 +801,17 @@ int ZigZagArray[64] = {
     restartIntervals.clear();
     applications.clear();
     comments.clear();
+    for (int i = 0; i < 3; i++) {
+        if (components[i].data != nil) {
+            for (int row = 0; row < components[i].Y; row++)
+                delete [] components[i][row];
+            delete [] components[i].data;
 
-    for (int i = 0; i < 2; i++)
-        for (int j = 0; j < 2; j++)
-            huffmanTables[i][j].clear();
+            components[i].data = nil;
+        }
+    }
+
+    for (int i = 0; i < 2; i++) for (int j = 0; j < 2; j++) delete htnHuffmanTreeRoot[i][j];
 }
 
 @end

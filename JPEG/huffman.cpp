@@ -1,14 +1,12 @@
-#include <string>
-using namespace std;
+#include "huffman.h"
 
 /*****************************************************************************************************/
-//
+// C1 procedure
 // Input BITS list
 // Output HUFFSIZE table
 //
 /*****************************************************************************************************/
-template <typename T1, typename T2>
-int generateSizeTable(T1 BITS, T2 HUFFSIZE) {
+void generateSizeTable(unsigned char BITS[17], int HUFFSIZE[256]) {
     int k = 0;
     int i = 1, j = 1;
     
@@ -21,19 +19,16 @@ int generateSizeTable(T1 BITS, T2 HUFFSIZE) {
         i++;
         j = 1;
     } while (!(i > 16));
-
-    return k;
 }
 
 /*****************************************************************************************************/
-//
+// C2 procedure
 // Input HUFFSIZE table
 // Output HUFFCODE
 //
 /*****************************************************************************************************/
 
-template <typename T1, typename T2>
-void generateCodeTable(T1 HUFFSIZE, T2 HUFFCODE) {
+void generateCodeTable(int HUFFSIZE[256], int HUFFCODE[256]) {
     int k = 0;
     int iCode = 0;
     int iSi = HUFFSIZE[0];
@@ -57,38 +52,65 @@ void generateCodeTable(T1 HUFFSIZE, T2 HUFFCODE) {
 }
 
 /*****************************************************************************************************/
-//
+// C3 procedure
 // Input HUFFSIZE, HUFFCODE, HUFFVAL, LASTK
 // Output EHUFCO, EHUFSI
 //
 /*****************************************************************************************************/
 
-template <typename T1, typename T2, typename T3, typename T4>
-void generateEHUFCOandEHUFSI(T1 HUFFSIZE, T2 HUFFCODE, T3 HUFFVAL, string *EHUFCO, T4 EHUFVAL,
-                             int LASTK) {
-
+void generateEHUFFCODEandEHUFFSIZE(int HUFFSIZE[256], int HUFFCODE[256],
+                                   vector<unsigned char> &HUFFVAL, int EHUFFCODE[256], int EHUFFSIZE[256]) {
     int i;
     int k = 0;
-
-    do {
-        // Value stores in HUFFVAL is directly the category, not the postion.
-        i = (HUFFVAL[k] >> 4) * 10 + (HUFFVAL[k] & 0x0F);
-        if ((HUFFVAL[k] >> 4) == 0x0F)
-            i++;
-
-        EHUFCO[i] = transformValueToCodeWord(HUFFCODE[k], HUFFSIZE[k]);
-        EHUFVAL[i] = HUFFVAL[k];
-
-        k++;
-    } while (k < LASTK);
+    int iLask = (int)HUFFVAL.size();
+        do {
+            i = HUFFVAL[k];
+            EHUFFCODE[i] = HUFFCODE[k];
+            EHUFFSIZE[i] = HUFFSIZE[k];
+            k++;
+        } while (k < iLask);
 }
 
-template <typename T1>
-string transformValueToCodeWord(T1 code, T1 size) {
+string transformValueToCodeWord(int code, int size) {
     string sCodeWord = "";
 
     for (size -= 1; size >= 0; size--)
         sCodeWord += to_string((code >> size) & 0x1);
 
     return sCodeWord;
+}
+
+/*****************************************************************************************************/
+// Construct huffman tree
+// Input EHUFFSIZE, EHUFFCODEBIT
+// Output huffman tree
+/*****************************************************************************************************/
+HuffmanTreeNode* constructHuffmanTree(int EHUFFSIZE[256], int EHUFFCODEBIT[256][16]) {
+    int iCodeLength;
+    HuffmanTreeNode *huffmanTable = new HuffmanTreeNode();
+    HuffmanTreeNode *htnCurrentNode;
+
+    for (int k = 0;k < 256; k++){
+        iCodeLength = EHUFFSIZE[k];
+        if (iCodeLength != 0) {
+            htnCurrentNode = huffmanTable;
+
+            for (int i = 0; i < iCodeLength; i++) {
+                if (EHUFFCODEBIT[k][i] == 0) {
+                    if (htnCurrentNode->htnZeroSubtree == NULL) {
+                        htnCurrentNode->htnZeroSubtree = new HuffmanTreeNode();
+                    }
+                    htnCurrentNode = htnCurrentNode->htnZeroSubtree;
+                }
+                else {
+                    if (htnCurrentNode->htnOneSubtree == NULL) {
+                        htnCurrentNode->htnOneSubtree = new HuffmanTreeNode();
+                    }
+                    htnCurrentNode = htnCurrentNode->htnOneSubtree;
+                }
+            }
+            htnCurrentNode->iCategory = k;
+        }
+    }
+    return huffmanTable;
 }

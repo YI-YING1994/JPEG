@@ -10,15 +10,15 @@
 
 @implementation NSImage (cplusplus)
 
-+ (instancetype)imageWithData:(Byte*)data row:(int)row andColumn:(int)col {
-    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, data, row * col * 3, NULL);
++ (instancetype)imageWithData:(Byte*)data row:(int)row andColumn:(int)col colorspace:(ColorSpace)space {
+    CGColorSpaceRef colorSpace = (space == ColorSpaceGray) ? CGColorSpaceCreateDeviceGray() : CGColorSpaceCreateDeviceRGB();
+    CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, data, row * col * space, NULL);
 
     CGImageRef imageRef = CGImageCreate(col,                                            // Width
                                         row,                                            // Height
                                         8,                                              // Bits per component
-                                        8 * 3,                                              // Bits per pixel
-                                        col * 3,                                            // Bytes per row
+                                        8 * space,                                              // Bits per pixel
+                                        col * space,                                            // Bytes per row
                                         colorSpace,                                     // Colorspace
                                         0,                                              // Bitmap info flags
                                         provider,                                       // CGDataProviderRef

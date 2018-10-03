@@ -10,7 +10,6 @@
 		2D0260381F478E6A0092C27F /* DQTViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D0260371F478E6A0092C27F /* DQTViewController.m */; };
 		2D02603E1F4797BC0092C27F /* DHTViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D02603D1F4797BC0092C27F /* DHTViewController.m */; };
 		2D2DB1091F4998B6002A201F /* reader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D2DB1071F4998B6002A201F /* reader.cpp */; };
-		2D2DB10A1F4998B6002A201F /* huffman.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D2DB1081F4998B6002A201F /* huffman.cpp */; };
 		2D7350701F5C9C2F002CD0C8 /* NSImage+OpenCV.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D73506F1F5C9C2F002CD0C8 /* NSImage+OpenCV.mm */; };
 		2D8532C91F474705001AE863 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D8532C81F474705001AE863 /* AppDelegate.m */; };
 		2D8532CC1F474705001AE863 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D8532CB1F474705001AE863 /* main.m */; };
@@ -18,6 +17,7 @@
 		2D8532D11F474705001AE863 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2D8532D01F474705001AE863 /* Assets.xcassets */; };
 		2D8532D41F474706001AE863 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 2D8532D21F474706001AE863 /* Main.storyboard */; };
 		2DD13A2220A37B5F00B94A0F /* NSImage+cplusplus.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2DD13A2120A37B5F00B94A0F /* NSImage+cplusplus.mm */; };
+		2DD9B12B2165106F0063AC33 /* ImageViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2DD9B12A2165106F0063AC33 /* ImageViewController.m */; };
 		EAFD673820EF360C00780E89 /* libopencv_core.3.4.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = EAFD673520EF360C00780E89 /* libopencv_core.3.4.2.dylib */; };
 		EAFD673920EF360C00780E89 /* libopencv_highgui.3.4.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = EAFD673620EF360C00780E89 /* libopencv_highgui.3.4.2.dylib */; };
 		EAFD673A20EF360C00780E89 /* libopencv_imgproc.3.4.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = EAFD673720EF360C00780E89 /* libopencv_imgproc.3.4.2.dylib */; };
@@ -45,6 +45,8 @@
 		2D8532D51F474706001AE863 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2DD13A2020A37B5F00B94A0F /* NSImage+cplusplus.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NSImage+cplusplus.h"; sourceTree = "<group>"; };
 		2DD13A2120A37B5F00B94A0F /* NSImage+cplusplus.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = "NSImage+cplusplus.mm"; sourceTree = "<group>"; };
+		2DD9B1292165106F0063AC33 /* ImageViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImageViewController.h; sourceTree = "<group>"; };
+		2DD9B12A2165106F0063AC33 /* ImageViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ImageViewController.m; sourceTree = "<group>"; };
 		EAFD673520EF360C00780E89 /* libopencv_core.3.4.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopencv_core.3.4.2.dylib; path = ../../../../../../usr/local/Cellar/opencv/3.4.2/lib/libopencv_core.3.4.2.dylib; sourceTree = "<group>"; };
 		EAFD673620EF360C00780E89 /* libopencv_highgui.3.4.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopencv_highgui.3.4.2.dylib; path = ../../../../../../usr/local/Cellar/opencv/3.4.2/lib/libopencv_highgui.3.4.2.dylib; sourceTree = "<group>"; };
 		EAFD673720EF360C00780E89 /* libopencv_imgproc.3.4.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopencv_imgproc.3.4.2.dylib; path = ../../../../../../usr/local/Cellar/opencv/3.4.2/lib/libopencv_imgproc.3.4.2.dylib; sourceTree = "<group>"; };
@@ -113,6 +115,8 @@
 				2D0260371F478E6A0092C27F /* DQTViewController.m */,
 				2D02603C1F4797BC0092C27F /* DHTViewController.h */,
 				2D02603D1F4797BC0092C27F /* DHTViewController.m */,
+				2DD9B1292165106F0063AC33 /* ImageViewController.h */,
+				2DD9B12A2165106F0063AC33 /* ImageViewController.m */,
 				2D8532D01F474705001AE863 /* Assets.xcassets */,
 				2D8532D21F474706001AE863 /* Main.storyboard */,
 				2D8532D51F474706001AE863 /* Info.plist */,
@@ -213,10 +217,10 @@
 				2D2DB1091F4998B6002A201F /* reader.cpp in Sources */,
 				2D8532CF1F474705001AE863 /* ViewController.mm in Sources */,
 				2D02603E1F4797BC0092C27F /* DHTViewController.m in Sources */,
-				2D2DB10A1F4998B6002A201F /* huffman.cpp in Sources */,
 				2DD13A2220A37B5F00B94A0F /* NSImage+cplusplus.mm in Sources */,
 				2D8532CC1F474705001AE863 /* main.m in Sources */,
 				2D7350701F5C9C2F002CD0C8 /* NSImage+OpenCV.mm in Sources */,
+				2DD9B12B2165106F0063AC33 /* ImageViewController.m in Sources */,
 				2D0260381F478E6A0092C27F /* DQTViewController.m in Sources */,
 				2D8532C91F474705001AE863 /* AppDelegate.m in Sources */,
 			);

@@ -5,29 +5,48 @@
 //  Created by MCUCSIE on 8/23/17.
 //  Copyright © 2017 MCUCSIE. All rights reserved.
 //
+#include <iostream>
+#include <algorithm>
+#include <string>
 using namespace std;
 
 /*****************************************************************************************************/
+#pragma mark - Huffman Tree Node
+struct HuffmanTreeNode {
+    int iCategory;
+    HuffmanTreeNode *htnZeroSubtree;
+    HuffmanTreeNode *htnOneSubtree;
+    HuffmanTreeNode(int category = -1, HuffmanTreeNode *zero = NULL, HuffmanTreeNode *one = NULL): iCategory(category), htnZeroSubtree(zero), htnOneSubtree(one) { };
+    ~HuffmanTreeNode() { delete htnZeroSubtree; delete htnOneSubtree; }
+};
+
+/*****************************************************************************************************/
+// C1 procedure
 // Input BITS list
 // Output HUFFSIZE table
-template <typename T1, typename T2>
-int generateSizeTable(T1 BITS, T2 HUFFSIZE);
+void generateSizeTable(unsigned char BITS[17], int HUFFSIZE[256]);
 
 /*****************************************************************************************************/
+// C2 procedure
 // Input HUFFSIZE table
 // Output HUFFCODE
-template <typename T1, typename T2>
-void generateCodeTable(T1 HUFFSIZE, T2 HUFFCODE);
+void generateCodeTable(int HUFFSIZE[256], int HUFFCODE[256]);
 
 /*****************************************************************************************************/
+// C3 procedure
 // Input HUFFSIZE, HUFFCODE, HUFFVAL, LASTK
 // Output EHUFCO, EHUFSI
-template <typename T1, typename T2, typename T3, typename T4>
-void generateEHUFCOandEHUFSI(T1 HUFFSIZE, T2 HUFFCODE, T3 HUFFVAL, string *EHUFCO, T4 EHUFVAL,
-                             int LASTK);
+void generateEHUFFCODEandEHUFFSIZE(int HUFFSIZE[256], int HUFFCODE[256], vector<unsigned char> &HUFFVAL,
+                                   int EHUFFCODE[256], int EHUFFSIZE[256]);
 
-template <typename T1>
-string transformValueToCodeWord(T1 code, T1 size);
+string transformValueToCodeWord(int code, int size);
+
+/*****************************************************************************************************/
+// Construct huffman tree
+// Input EHUFFSIZE, EHUFFCODEBIT
+// Output huffman tree
+
+HuffmanTreeNode* constructHuffmanTree(int EHUFFSIZE[256], int EHUFFCODEBIT[256][16]);
 
 /*****************************************************************************************************/
 
