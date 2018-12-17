@@ -13,5 +13,5 @@ typedef NS_ENUM(NSInteger, ColorSpace) {
     ColorSpaceRGB = 3
 };
 @interface NSImage (cplusplus)
-+ (instancetype)imageWithData:(Byte*)data row:(int)row andColumn:(int)col colorspace:(ColorSpace)space;
++ (instancetype)imageWithData:(void*)data row:(int)row andColumn:(int)col colorspace:(ColorSpace)space;
 @end

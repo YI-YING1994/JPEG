@@ -29,7 +29,7 @@ vector<RestartInterval> restartIntervals;
 vector<Application> applications;
 vector<CommentSegment> comments;
 DefineNumberOfLine defineNumberOfLine;
-HuffmanTreeNode *htnHuffmanTreeRoot[2][2];
+HuffmanTreeNode *htnHuffmanTreeRoot[2][2] = { nil };
 int iQuantizationTables[4][64];
 int iLowerBoundOfCategory[2][12];
 
@@ -370,10 +370,10 @@ struct ComponentOfJPEG {
     int iTaj;
     int iTqi;
     int iPreDC;
-    Byte **data = nil;
+    int **data = nil;
     static int Himax;
     static int Vimax;
-    Byte*& operator [](int index) { return data[index]; };
+    int*& operator [](int index) { return data[index]; };
 };
 int ComponentOfJPEG::Himax;
 int ComponentOfJPEG::Vimax;
@@ -481,15 +481,14 @@ int iRemainPosition;
         components[i].iTaj = scanComponents[i].Taj;
         components[i].Y = MCUI * components[i].Vi * 8;
         components[i].X = MCUJ * components[i].Hi * 8;
-        components[i].data = new Byte*[components[i].Y];
-        for (int j = 0; j < components[i].Y; j++) components[i][j] = new Byte[components[i].X];
+        components[i].data = new int*[components[i].Y];
+        for (int j = 0; j < components[i].Y; j++) components[i][j] = new int[components[i].X];
     }
     int iCurrentI;
     int iCurrentJ;
     Block block;
     unsigned char ucRST;
     iRemainPosition = -1;
-    cout << MCUJ << " " << MCUI << endl;
     for (int i = 0; i < MCUI; i++) {
         for (int j = 0; j < MCUJ; j++) {
             for (int k = 0; k < scanHeader.Ns; k++) {
@@ -516,8 +515,8 @@ int iRemainPosition;
     }
     cout << "Finished..." << endl;
 
-    int row = components[0].Y;
-    int col = components[0].X;
+    int row = frameHeaders[0].Y;
+    int col = frameHeaders[0].X;
     cout << row << " " << col << endl;
     Byte *bData = new Byte[3 * row * col];
     int iY, iCb, iCr;
@@ -580,8 +579,6 @@ int iRemainPosition;
     }
     [self deZigZag:block andDequantization: component.iTqi];
     [self IDCT: block];
-//    for (int i = 0; i < 8; i++, cout << endl) for (int j = 0; j < 8; j++) cout << block[i * 8 + j] << "\t";
-
 }
 
 /*******************************************************************************************************/
@@ -656,10 +653,10 @@ int iInvZigZagArray[64] = {
 - (void)deZigZag:(Block &)block andDequantization:(int)Tqi {
     Block temp;
     for (int i = 0; i < 64; i++)
-        temp[i] = block[i];
+        temp[i] = block[i] * iQuantizationTables[Tqi][i];
 
     for (int i = 0; i < 64; i++)
-        block[i] = temp[iInvZigZagArray[i]] * iQuantizationTables[Tqi][i];
+        block[i] = temp[iInvZigZagArray[i]];
 
 }
 
@@ -811,7 +808,12 @@ int iEHUFFCODEBIT[256][16];
         }
     }
 
-    for (int i = 0; i < 2; i++) for (int j = 0; j < 2; j++) delete htnHuffmanTreeRoot[i][j];
+    for (int i = 0; i < 2; i++) for (int j = 0; j < 2; j++) {
+        if (htnHuffmanTreeRoot[i][j] != nil) {
+            delete htnHuffmanTreeRoot[i][j];
+            htnHuffmanTreeRoot[i][j] = nil;
+        }
+    }
 }
 
 @end
