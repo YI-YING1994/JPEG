@@ -9,6 +9,7 @@
 *.docx
 *.pages
 *.pdf
+*.DS_Store
 xcshareddata/
 
 ## Build generated

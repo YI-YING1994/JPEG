@@ -16,6 +16,21 @@ set<unsigned char> setMarkers = {
 
 /*****************************************************************************************************/
 //
+// Override fstream operator << short
+//
+/*****************************************************************************************************/
+
+fstream& operator<< (fstream& s, unsigned short &val) {
+    unsigned char temp[2];
+    temp[0] = val >> 8;
+    temp[1] = val & 0x00FF;
+    s << temp[0] << temp[1];
+
+    return s;
+}
+
+/*****************************************************************************************************/
+//
 // Operator>> function for FrameHeader and ComponentParameter
 //
 /*****************************************************************************************************/
@@ -33,9 +48,19 @@ istream& operator>> (istream& s, ComponentParameter& val) {
     return s;
 }
 
+ostream& operator<< (ostream& s, ComponentParameter& val) {
+    s << val.Ci;
+    
+    unsigned char temp = (val.Hi << 4) | val.Vi;
+    s << temp;
+    s << val.Tqi;
+    
+    return s;
+}
+
 istream& operator>> (istream& s, FrameHeader& val) {
 
-    // Use 8 unsigned char to tempily store data which need to compute later
+    // Use 8 unsigned char to temporarily store data which need to compute later
     unsigned char temp[8];
 
     for (int i = 0; i < 8; i++)
@@ -57,6 +82,18 @@ istream& operator>> (istream& s, FrameHeader& val) {
     return s;
 }
 
+ostream& operator<< (ostream& s, FrameHeader& val) {
+    
+    (fstream&)s << val.Lf << val.P;
+    (fstream&)s << val.Y << val.X << val.Nf;
+    
+    for (int i = 0; i < val.Nf; i++) {
+        s << val.componentParameters[i];
+    }
+    
+    return s;
+}
+
 /*****************************************************************************************************/
 //
 // Operator>> function for ScanHeader and ScanComponentParameter
@@ -75,9 +112,18 @@ istream& operator>> (istream& s, ScanComponentParameter& val) {
     return s;
 }
 
+ostream& operator<< (ostream& s, ScanComponentParameter& val) {
+    s << val.Csj;
+    
+    unsigned char temp = (val.Tdj << 4) | val.Taj;
+    s << temp;
+    
+    return s;
+}
+
 istream& operator>> (istream& s, ScanHeader& val) {
 
-    // Use 2 unsigned char to tempily store data which need to compute later
+    // Use 2 unsigned char to temporarily store data which need to compute later
     unsigned char temp[2];
 
     s >> temp[0] >> temp[1];
@@ -101,6 +147,21 @@ istream& operator>> (istream& s, ScanHeader& val) {
     return s;
 }
 
+ostream& operator<< (ostream& s, ScanHeader& val) {
+    (fstream&)s << val.Ls << val.Ns;
+    
+    for (int i = 0; i < val.Ns; i++) {
+        s << val.scanComponentParameters[i];
+    }
+
+    s << val.Ss << val.Se;
+
+    unsigned char temp = (val.Ah << 4) | val.Al;
+    s << temp;
+
+    return s;
+}
+
 /*****************************************************************************************************/
 //
 // Operator>> function for QuantizationTable and QuantizationParameter
@@ -109,7 +170,7 @@ istream& operator>> (istream& s, ScanHeader& val) {
 #pragma mark - Operator>> function for QuantizationTable and QuantizationParameter
 istream& operator>> (istream& s, QuantizationParameter& val) {
 
-    // Use 2 unsigned char to tempily store data which need to compute later
+    // Use 2 unsigned char to temporarily store data which need to compute later
     unsigned char temp[2];
 
     s >> temp[0];
@@ -137,9 +198,34 @@ istream& operator>> (istream& s, QuantizationParameter& val) {
     return s;
 }
 
+ostream& operator<< (ostream& s, QuantizationParameter& val) {
+    
+    // Use 2 unsigned char to temporarily store data which need to compute later
+    unsigned char temp = (val.Pq << 4) | val.Tq;
+    s << temp;
+    
+    for (int i = 0; i < 64; i++) {
+        
+        // if precision is 16 bits, read two bytes into temp buffer
+        if (val.Pq) {
+            (fstream&)s << val.Qk[i];
+        }
+        
+        // if precision is 8 bits, read one bytes into temp buffer
+        // Note: Qk is unsigned short, so need to read data into temp buffer
+        //       before store data into Qk
+        else {
+            temp = (unsigned char)val.Qk[i];
+            s << temp;
+        }
+    }
+    
+    return s;
+}
+
 istream& operator>> (istream& s, QuantizationHeader& val) {
 
-    // Use 2 unsigned char to tempily store data which need to compute later
+    // Use 2 unsigned char to temporarily store data which need to compute later
     unsigned char temp[2];
 
     s >> temp[0] >> temp[1];
@@ -165,6 +251,16 @@ istream& operator>> (istream& s, QuantizationHeader& val) {
     return s;
 }
 
+ostream& operator<< (ostream& s, QuantizationHeader& val) {
+    (fstream&)s << val.Lq;
+
+    for (int i = 0; i < val.quantizationParameters.size(); i++) {
+        s << val.quantizationParameters[i];
+    }
+    
+    return s;
+}
+
 /*****************************************************************************************************/
 //
 // Operator>> function for HuffmanTable and HuffmanParameter
@@ -173,7 +269,7 @@ istream& operator>> (istream& s, QuantizationHeader& val) {
 #pragma mark - Operator>> function for HuffmanTable and HuffmanParameter
 istream& operator>> (istream& s, HuffmanParameter& val) {
 
-    // Use an unsigned char to tempily store data which need to compute later
+    // Use an unsigned char to temporarily store data which need to compute later
     unsigned char temp;
 
     s >> temp;
@@ -193,9 +289,25 @@ istream& operator>> (istream& s, HuffmanParameter& val) {
     return s;
 }
 
+ostream& operator<< (ostream& s, HuffmanParameter& val) {
+    
+    // Use an unsigned char to temporarily store data which need to compute later
+    unsigned char temp = (val.Tc << 4) | val.Th;
+    s << temp;
+    
+    for (int i = 1; i < 17; i++)
+        s << val.Li[i];
+    
+    for (int i = 0; i < val.Vij.size(); i++) {
+        s << val.Vij[i];
+    }
+    
+    return s;
+}
+
 istream& operator>> (istream& s, HuffmanHeader& val) {
 
-    // Use 2 unsigned char to tempily store data which need to compute later
+    // Use 2 unsigned char to temporarily store data which need to compute later
     unsigned char temp[2];
 
     s >> temp[0] >> temp[1];
@@ -223,6 +335,16 @@ istream& operator>> (istream& s, HuffmanHeader& val) {
     return s;
 }
 
+ostream& operator<< (ostream& s, HuffmanHeader& val) {
+    (fstream&)s << val.Lh;
+    
+    for (int i = 0; i < val.huffmanParameters.size(); i++) {
+        s << val.huffmanParameters[i];
+    }
+    
+    return s;
+}
+
 /*****************************************************************************************************/
 //
 // Operator>> function for ArithmeticTable and ArithmeticParameter
@@ -231,7 +353,7 @@ istream& operator>> (istream& s, HuffmanHeader& val) {
 #pragma mark - Operator>> function for ArithmeticTable and ArithmeticParameter
 istream& operator>> (istream& s, ArithmeticParameter& val) {
 
-    // Use an unsigned char to tempily store data which need to compute later
+    // Use an unsigned char to temporarily store data which need to compute later
     unsigned char temp;
 
     s >> temp;
@@ -244,9 +366,18 @@ istream& operator>> (istream& s, ArithmeticParameter& val) {
     return s;
 }
 
+ostream& operator<< (ostream& s, ArithmeticParameter& val) {
+    
+    // Use an unsigned char to temporarily store data which need to compute later
+    unsigned char temp = (val.Tc << 4) | val.Tb;
+    s << temp << val.Cs;
+    
+    return s;
+}
+
 istream& operator>> (istream& s, ArithmeticTable& val) {
 
-    // Use 2 unsigned char to tempily store data which need to compute later
+    // Use 2 unsigned char to temporarily store data which need to compute later
     unsigned char temp[2];
 
     s >> temp[0] >> temp[1];
@@ -269,6 +400,16 @@ istream& operator>> (istream& s, ArithmeticTable& val) {
     return s;
 }
 
+ostream& operator<< (ostream& s, ArithmeticTable& val) {
+    (fstream&)s << val.La;
+    
+    for (int i = 0; i < val.arithmeticParameters.size(); i++) {
+        s << val.arithmeticParameters[i];
+    }
+    
+    return s;
+}
+
 /*****************************************************************************************************/
 //
 // Operator>> function for RestartInterval
@@ -277,7 +418,7 @@ istream& operator>> (istream& s, ArithmeticTable& val) {
 #pragma mark - Operator>> function for RestartInterval
 istream& operator>> (istream& s, RestartInterval& val) {
 
-    // Use 2 unsigned char to tempily store data which need to compute later
+    // Use 2 unsigned char to temporarily store data which need to compute later
     unsigned char temp[2];
 
     s >> temp[0] >> temp[1];
@@ -291,6 +432,12 @@ istream& operator>> (istream& s, RestartInterval& val) {
     return s;
 }
 
+ostream& operator<< (ostream& s, RestartInterval& val) {
+    (fstream&)s << val.Lr << val.Ri;
+    
+    return s;
+}
+
 /*****************************************************************************************************/
 //
 // Operator>> function for CommentSegment
@@ -299,7 +446,7 @@ istream& operator>> (istream& s, RestartInterval& val) {
 #pragma mark - Operator>> function for CommentSegment
 istream& operator>> (istream& s, CommentSegment& val) {
 
-    // Use 2 unsigned char to tempily store data which need to compute later
+    // Use 2 unsigned char to temporarily store data which need to compute later
     unsigned char temp[2];
 
     s >> temp[0] >> temp[1];
@@ -321,6 +468,16 @@ istream& operator>> (istream& s, CommentSegment& val) {
     return s;
 }
 
+ostream& operator<< (ostream& s, CommentSegment& val) {
+    (fstream&)s << val.Lc;
+    
+    for (int i = 0; i < val.Cmi.size(); i++) {
+        s << val.Cmi[i];
+    }
+    
+    return s;
+}
+
 /*****************************************************************************************************/
 //
 // Operator>> function for Application
@@ -329,7 +486,7 @@ istream& operator>> (istream& s, CommentSegment& val) {
 #pragma mark - Operator>> function for Application
 istream& operator>> (istream& s, Application& val) {
 
-    // Use 2 unsigned char to tempily store data which need to compute later
+    // Use 2 unsigned char to temporarily store data which need to compute later
     unsigned char temp[2];
 
     s >> temp[0] >> temp[1];
@@ -352,6 +509,16 @@ istream& operator>> (istream& s, Application& val) {
     return s;
 }
 
+ostream& operator<< (ostream& s, Application& val) {
+    (fstream&)s << val.Lp;
+    
+    for (int i = 0; i < val.Api.size(); i++) {
+        s << val.Api[i];
+    }
+    
+    return s;
+}
+
 /*****************************************************************************************************/
 //
 // Operator>> function for DefineNumberOfLine
@@ -370,5 +537,11 @@ istream& operator>> (istream& s, DefineNumberOfLine& val) {
 
     val.NL = (temp[0] << 8) | temp[1];
     
+    return s;
+}
+
+ostream& operator<< (ostream& s, DefineNumberOfLine& val) {
+    (fstream&)s << val.Ld << val.NL;
+
     return s;
 }

@@ -38,6 +38,7 @@ struct ComponentParameter {
 };
 
 istream& operator>> (istream &s, ComponentParameter &val);
+ostream& operator<< (ostream &s, ComponentParameter &val);
 
 struct FrameHeader {
     unsigned char marker = SOF0;
@@ -50,6 +51,7 @@ struct FrameHeader {
 };
 
 istream& operator>> (istream &s, FrameHeader &val);
+ostream& operator<< (ostream &s, FrameHeader &val);
 
 /*******************************************************************************************************/
 #pragma mark- ScanHeader
@@ -61,6 +63,7 @@ struct ScanComponentParameter {
 };
 
 istream& operator>> (istream &s, ScanComponentParameter &val);
+ostream& operator<< (ostream &s, ScanComponentParameter &val);
 
 struct ScanHeader {
     unsigned char marker = SOS;
@@ -74,6 +77,7 @@ struct ScanHeader {
 };
 
 istream& operator>> (istream &s, ScanHeader &val);
+ostream& operator<< (ostream &s, ScanHeader &val);
 
 /*******************************************************************************************************/
 #pragma mark- QuantizationTable
@@ -85,6 +89,7 @@ struct QuantizationParameter {
 };
 
 istream& operator>> (istream &s, QuantizationParameter &val);
+ostream& operator<< (ostream &s, QuantizationParameter &val);
 
 struct QuantizationHeader {
     unsigned char marker = DQT;
@@ -93,6 +98,7 @@ struct QuantizationHeader {
 };
 
 istream& operator>> (istream &s, QuantizationHeader &val);
+ostream& operator<< (ostream &s, QuantizationHeader &val);
 
 /*******************************************************************************************************/
 #pragma mark- HuffmanTable
@@ -105,6 +111,7 @@ struct HuffmanParameter {
 };
 
 istream& operator>> (istream &s, HuffmanParameter &val);
+ostream& operator<< (ostream &s, HuffmanParameter &val);
 
 struct HuffmanHeader {
     unsigned char marker = DHT;
@@ -114,6 +121,7 @@ struct HuffmanHeader {
 };
 
 istream& operator>> (istream &s, HuffmanHeader &val);
+ostream& operator<< (ostream &s, HuffmanHeader &val);
 
 /*******************************************************************************************************/
 #pragma mark- ArithmeticTable
@@ -125,6 +133,7 @@ struct ArithmeticParameter {
 };
 
 istream& operator>> (istream &s, ArithmeticParameter &val);
+ostream& operator<< (ostream &s, ArithmeticParameter &val);
 
 struct ArithmeticTable {
     unsigned char marker = DAC;
@@ -133,6 +142,7 @@ struct ArithmeticTable {
 };
 
 istream& operator>> (istream &s, ArithmeticTable &val);
+ostream& operator<< (ostream &s, ArithmeticTable &val);
 
 /*******************************************************************************************************/
 #pragma mark- RestartInterval
@@ -144,6 +154,7 @@ struct RestartInterval {
 };
 
 istream& operator>> (istream &s, RestartInterval &val);
+ostream& operator<< (ostream &s, RestartInterval &val);
 
 /*******************************************************************************************************/
 #pragma mark- CommentSegment
@@ -155,6 +166,7 @@ struct CommentSegment {
 };
 
 istream& operator>> (istream &s, CommentSegment &val);
+ostream& operator<< (ostream &s, CommentSegment &val);
 
 /*******************************************************************************************************/
 #pragma mark- Application
@@ -166,6 +178,7 @@ struct Application {
 };
 
 istream& operator>> (istream &s, Application &val);
+ostream& operator<< (ostream &s, Application &val);
 
 /*******************************************************************************************************/
 #pragma mark- DefineNumberOfLine
@@ -177,5 +190,6 @@ struct DefineNumberOfLine {
 };
 
 istream& operator>> (istream &s, DefineNumberOfLine &val);
+ostream& operator<< (ostream &s, DefineNumberOfLine &val);
 
 /*******************************************************************************************************/

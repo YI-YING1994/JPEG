@@ -8,7 +8,6 @@
 
 #import <iostream>
 #import <string>
-#import <unordered_map>
 #import "reader.h"
 #import "huffman.h"
 #import "NSImage+cplusplus.h"
@@ -153,6 +152,7 @@ int iLowerBoundOfCategory[2][12];
 
 int iRi;
 bool bEOI;
+fstream fout;
 
 #pragma mark- Decode image functions
 - (void)decodeImageWithFileURL:(NSURL *)url {
@@ -162,10 +162,13 @@ bool bEOI;
     fstream fs;
     fs.open([url.path UTF8String], fstream::in | fstream::out | fstream::binary);
     fs.unsetf(fstream::skipws);
+    
+    fout.open("/Users/macdesktop/Desktop/Stego.jpg", fstream::out | fstream::binary);
+    if (fout.fail()) cout << "Create new file failed!" << endl;
 
     unsigned char ucMarker;
     ucMarker = [self interpretMarkersWithStream:fs];
-    if (ucMarker != SOI) return;
+    if (ucMarker != SOI) { cout << "Not supported file format!" << endl; fout.close(); return; }
 
     bEOI = false;
     iRi = 0;
@@ -200,6 +203,7 @@ bool bEOI;
             case DAC: {
                 ArithmeticTable arithmeticTable;
                 fs >> arithmeticTable;
+                fout << arithmeticTable;
             }
                 break;
 
@@ -213,6 +217,7 @@ bool bEOI;
 
             case DNL:
                 fs >> defineNumberOfLine;
+                fout << defineNumberOfLine;
                 break;
 
             case DRI:
@@ -222,6 +227,7 @@ bool bEOI;
             case COM: {
                 CommentSegment commentSegment;
                 fs >> commentSegment;
+                fout << commentSegment;
 
                 comments.push_back(commentSegment);
             }
@@ -235,6 +241,8 @@ bool bEOI;
                 break;
         }
     }
+    
+    fout.close();
 }
 
 /*******************************************************************************************************/
@@ -244,6 +252,7 @@ bool bEOI;
     Application application;
     application.marker = marker;
     fs >> application;
+    fout << application;
 
     applications.push_back(application);
 }
@@ -254,6 +263,7 @@ bool bEOI;
 - (void)huffmanHeaderHandler:(fstream&)fs {
     HuffmanHeader huffmanHeader;
     fs >> huffmanHeader;
+    fout << huffmanHeader;
     huffmanHeaders.push_back(huffmanHeader);
 
     /*
@@ -304,6 +314,7 @@ bool bEOI;
 - (void)quantizationTableHeaderHandler:(fstream&)fs {
     QuantizationHeader quantizationHeader;
     fs >> quantizationHeader;
+    fout << quantizationHeader;
     quantizationHeaders.push_back(quantizationHeader);
 
     //Get Lq
@@ -347,6 +358,7 @@ bool bEOI;
 - (void)restartIntervalHeaderHandler:(fstream&)fs {
     RestartInterval restartInterval;
     fs >> restartInterval;
+    fout << restartInterval;
     iRi = restartInterval.Ri;
 
     restartIntervals.push_back(restartInterval);
@@ -370,6 +382,7 @@ struct ComponentOfJPEG {
     int iTaj;
     int iTqi;
     int iPreDC;
+    int iID;
     int **data = nil;
     static int Himax;
     static int Vimax;
@@ -383,6 +396,7 @@ ComponentOfJPEG components[3];
 - (void)frameHeaderHandler:(fstream&)fs {
     FrameHeader frameHeader;
     fs >> frameHeader;
+    fout << frameHeader;
     frameHeaders.push_back(frameHeader);
 
     //Get LF, P, Y, X, Nf
@@ -443,6 +457,7 @@ int iRemainPosition;
 - (void)decodeScanWithFstream:(fstream&)fs {
     ScanHeader scanHeader;
     fs >> scanHeader;
+    fout << scanHeader;
 
     scanHeaders.push_back(scanHeader);
 
@@ -477,6 +492,7 @@ int iRemainPosition;
     int MCUI = ceil((double)components[0].Y * components[0].Vi / (components[0].Vi * components[0].Vimax * 8));
     int MCUJ = ceil((double)components[0].X * components[0].Hi / (components[0].Hi * components[0].Himax * 8));
     for (int i = 0; i < scanHeader.Ns; i++) {
+        components[i].iID = i + 1;
         components[i].iTdj = scanComponents[i].Tdj;
         components[i].iTaj = scanComponents[i].Taj;
         components[i].Y = MCUI * components[i].Vi * 8;
@@ -509,7 +525,11 @@ int iRemainPosition;
                 components[0].iPreDC = 0;
                 components[1].iPreDC = 0;
                 components[2].iPreDC = 0;
-                fs >> ucRST >> ucRST;
+                fs >> ucRST;
+                fout << ucRST;
+                
+                fs >> ucRST;
+                fout << ucRST;
             }
         }
     }
@@ -518,37 +538,41 @@ int iRemainPosition;
     int row = frameHeaders[0].Y;
     int col = frameHeaders[0].X;
     cout << row << " " << col << endl;
-    Byte *bData = new Byte[3 * row * col];
+    
+    bool bIsRGB = (scanHeader.Ns > 1);
+    Byte *bData = new Byte[(bIsRGB ? 3 : 1) * row * col];
+    
     int iY, iCb, iCr;
     int iR, iG, iB;
     for (int i = 0; i < row; i++) {
         for (int j = 0; j < col; j++) {
-//            bData[i * col + j] = [self clip: components[0][i][j]];
-
-//            cout << i * components[1].Vi / components[1].Vimax << endl;
-
-            iY = components[0][i * components[0].Vi / components[0].Vimax][j * components[0].Hi / components[0].Himax];
-            iCb = components[1][i * components[1].Vi / components[1].Vimax][j * components[1].Hi / components[1].Himax];
-            iCr = components[2][i * components[2].Vi / components[2].Vimax][j * components[2].Hi / components[2].Himax];
-
-            iR = ((298 * (iY -16) + 409 * (iCr -128) +128) >> 8);
-            iG = ((298 * (iY -16) - 100 * (iCb -128) - 208 * (iCr -128) +128) >> 8);
-            iB = ((298 * (iY -16) + 516 * (iCb -128) +128) >> 8);
-
-            iR = [self clip: iR];
-            iG = [self clip: iG];
-            iB = [self clip: iB];
-
-            bData[i * col * 3 + j * 3] = iR;
-            bData[i * col * 3 + j * 3 +1] = iG;
-            bData[i * col * 3 + j * 3 +2] = iB;
+            // cout << i * components[1].Vi / components[1].Vimax << endl;
+            if (bIsRGB) {
+                iY = components[0][i * components[0].Vi / components[0].Vimax][j * components[0].Hi / components[0].Himax];
+                iCb = components[1][i * components[1].Vi / components[1].Vimax][j * components[1].Hi / components[1].Himax];
+                iCr = components[2][i * components[2].Vi / components[2].Vimax][j * components[2].Hi / components[2].Himax];
+                
+                iR = ((298 * (iY -16) + 409 * (iCr -128) +128) >> 8);
+                iG = ((298 * (iY -16) - 100 * (iCb -128) - 208 * (iCr -128) +128) >> 8);
+                iB = ((298 * (iY -16) + 516 * (iCb -128) +128) >> 8);
+                
+                iR = [self clip: iR];
+                iG = [self clip: iG];
+                iB = [self clip: iB];
+                
+                bData[i * col * 3 + j * 3] = iR;
+                bData[i * col * 3 + j * 3 +1] = iG;
+                bData[i * col * 3 + j * 3 +2] = iB;
+            }
+            else
+                bData[i * col + j] = [self clip: components[0][i][j]];
         }
     }
 
     dispatch_async(dispatch_get_main_queue(), ^{
         ImageViewController *imageViewController = [self.parentViewController childViewControllers][3] ;
         NSImageView *ivImageView = imageViewController.ivResolveImage;
-        [ivImageView setImage:[NSImage imageWithData:bData row: row andColumn: col colorspace: ColorSpaceRGB]];
+        [ivImageView setImage:[NSImage imageWithData:bData row: row andColumn: col colorspace: bIsRGB ? ColorSpaceRGB : ColorSpaceGray]];
     });
 }
 
@@ -577,6 +601,7 @@ int iRemainPosition;
         [self getSample:fs Tc: 1 Th: iTaj nextAC: iNextAC sample: iSample component: component];
         block[iNextAC] = iSample;
     }
+//    cout << "*************************************************\n";
     [self deZigZag:block andDequantization: component.iTqi];
     [self IDCT: block];
 }
@@ -622,6 +647,31 @@ int iRemainPosition;
         iCurrentBit = [self getNextBit: fs];
         iOffset = (iOffset << 1) | iCurrentBit;
     }
+    
+    // embedding message bits
+    if (component.iID == 1 && rand() % 2) {
+        // embedding bit 1
+        long pos = fout.tellp();
+//        cout << "pos: " << pos << endl;
+        unsigned char ucMask = 1 << (iRemainPosition +1);
+        unsigned char ucTemp = ucRemain | ucMask;
+        if (ucTemp != 0xFF && ucRemain != 0xFF) {
+            fout.seekp(pos -1);
+            fout << ucTemp;
+        }
+    }
+    else if (component.iID == 1) {
+        // embedding bit 0
+        long pos = fout.tellp();
+//        cout << "pos: " << pos << endl;
+        unsigned char ucMask = ((1 << (iRemainPosition +1)) ^ 0xFF);
+        unsigned char ucTemp = ucRemain & ucMask;
+        if (ucTemp != 0xFF && ucRemain != 0xFF) {
+            fout.seekp(pos -1);
+            fout << ucTemp;
+        }
+    }
+
     sample = iLowerBoundOfCategory[iPorN][iCategory] + iOffset;
 }
 
@@ -697,9 +747,13 @@ int iInvZigZagArray[64] = {
     if (iRemainPosition == -1) {
         iRemainPosition = 7;
         fs >> ucRemain;
+        fout << ucRemain;
 
-        if (ucRemain == 0xFF)
+        if (ucRemain == 0xFF) {
             fs >> ucNext;
+            fout << ucNext;
+        }
+        
     }
 
     return ((ucRemain >> iRemainPosition--) & 0x1);
@@ -769,8 +823,11 @@ int iEHUFFCODEBIT[256][16];
     unsigned char ucFF, ucMarker;
 
     fs >> ucFF;
+    fout << ucFF;
 
     while (fs >> ucMarker) {
+        fout << ucMarker;
+        
         if (ucFF != 0xFF) {
             ucFF = ucMarker;
             continue;
