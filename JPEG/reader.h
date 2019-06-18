@@ -193,3 +193,28 @@ istream& operator>> (istream &s, DefineNumberOfLine &val);
 ostream& operator<< (ostream &s, DefineNumberOfLine &val);
 
 /*******************************************************************************************************/
+#pragma mark- ComponentOfJPEG
+
+struct ComponentOfJPEG {
+    int X;
+    int Y;
+    int Hi;
+    int Vi;
+    int iTdj;
+    int iTaj;
+    int iTqi;
+    int iPreDC;
+    int iID;
+    int **data = NULL;
+    static int Himax;
+    static int Vimax;
+    int*& operator [](int index) { return data[index]; };
+};
+
+/*******************************************************************************************************/
+#pragma mark- Block
+
+struct Block {
+    int iSamples[64];
+    int& operator [] (int index) { return iSamples[index]; };
+};

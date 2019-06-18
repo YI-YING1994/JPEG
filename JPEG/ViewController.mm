@@ -6,6 +6,7 @@
 //  Copyright © 2017 MCUCSIE. All rights reserved.
 //
 
+#import "AppDelegate.h"
 #import <iostream>
 #import <string>
 #import "reader.h"
@@ -27,10 +28,10 @@ vector<HuffmanHeader> huffmanHeaders;
 vector<RestartInterval> restartIntervals;
 vector<Application> applications;
 vector<CommentSegment> comments;
-DefineNumberOfLine defineNumberOfLine;
-HuffmanTreeNode *htnHuffmanTreeRoot[2][2] = { nil };
-int iQuantizationTables[4][64];
-int iLowerBoundOfCategory[2][12];
+static DefineNumberOfLine defineNumberOfLine;
+static HuffmanTreeNode *htnHuffmanTreeRoot[2][2] = { nil };
+static int iQuantizationTables[4][64];
+static int iLowerBoundOfCategory[2][12];
 
 
 /*******************************************************************************************************/
@@ -55,12 +56,22 @@ int iLowerBoundOfCategory[2][12];
 #pragma mark- ViewController life cycle
 - (void)viewDidLoad {
     [super viewDidLoad];
-
     NSMenuItem *miFile = [[[NSApplication sharedApplication] mainMenu] itemWithTitle: @"File"];
-    NSMenuItem *miOpen = [[miFile submenu] itemWithTitle: @"Open…"];
+    NSMenuItem *miOpen = [[miFile submenu] itemWithTag: 1];
+    
+    NSMenuItem *miExperiment = [[[NSApplication sharedApplication] mainMenu] itemWithTitle: @"Experiment"];
+    NSMenuItem *miOpenMultiFile = [[miExperiment submenu] itemWithTag: 0];
+    NSMenuItem *miCountObiqueRow = [[miExperiment submenu] itemWithTag: 1];
+    NSMenuItem *miEmbeddingDataPerTenPercent = [[miExperiment submenu] itemWithTag: 2];
 
     [miOpen setTarget: self];
     [miOpen setAction: @selector(pickAnImage)];
+    [miOpenMultiFile setTarget: self];
+    [miOpenMultiFile setAction: @selector(openMultiFile:)];
+    [miCountObiqueRow setTarget:self];
+    [miCountObiqueRow setAction: @selector(countObiqueRow:)];
+    [miEmbeddingDataPerTenPercent setTarget: self];
+    [miEmbeddingDataPerTenPercent setAction: @selector(embeddingDataPerTenPercent:)];
     [self categoryLowerBound];
 }
 
@@ -104,6 +115,8 @@ int iLowerBoundOfCategory[2][12];
 //            [weak_self.ivTest setImage:[[NSImage alloc] initWithContentsOfURL:theDoc]];
 
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                fout.open("/Users/macdesktop/Desktop/Stego.jpg", fstream::out | fstream::binary);
+                if (fout.fail()) cout << "Create new file failed!" << endl;
                 [weak_self decodeImageWithFileURL: theDoc];
 
                 DQTViewController *DQTViewController = [weak_self.parentViewController childViewControllers][1] ;
@@ -150,9 +163,9 @@ int iLowerBoundOfCategory[2][12];
 
 /*******************************************************************************************************/
 
-int iRi;
-bool bEOI;
-fstream fout;
+static int iRi;
+static bool bEOI;
+static fstream fout;
 
 #pragma mark- Decode image functions
 - (void)decodeImageWithFileURL:(NSURL *)url {
@@ -163,9 +176,6 @@ fstream fout;
     fs.open([url.path UTF8String], fstream::in | fstream::out | fstream::binary);
     fs.unsetf(fstream::skipws);
     
-    fout.open("/Users/macdesktop/Desktop/Stego.jpg", fstream::out | fstream::binary);
-    if (fout.fail()) cout << "Create new file failed!" << endl;
-
     unsigned char ucMarker;
     ucMarker = [self interpretMarkersWithStream:fs];
     if (ucMarker != SOI) { cout << "Not supported file format!" << endl; fout.close(); return; }
@@ -372,25 +382,9 @@ fstream fout;
 }
 
 /*******************************************************************************************************/
-
-struct ComponentOfJPEG {
-    int X;
-    int Y;
-    int Hi;
-    int Vi;
-    int iTdj;
-    int iTaj;
-    int iTqi;
-    int iPreDC;
-    int iID;
-    int **data = nil;
-    static int Himax;
-    static int Vimax;
-    int*& operator [](int index) { return data[index]; };
-};
 int ComponentOfJPEG::Himax;
 int ComponentOfJPEG::Vimax;
-ComponentOfJPEG components[3];
+static ComponentOfJPEG components[3];
 
 #pragma mark- Frame Header Handler
 - (void)frameHeaderHandler:(fstream&)fs {
@@ -444,13 +438,10 @@ ComponentOfJPEG components[3];
 
 /*******************************************************************************************************/
 
-struct Block {
-    int iSamples[64];
-    int& operator [] (int index) { return iSamples[index]; };
-};
-
-unsigned char ucRemain, ucNext;
-int iRemainPosition;
+static unsigned char ucRemain, ucNext;
+static int iRemainPosition;
+static long lEmbeddingBitsCount;
+static long lBitsInRange[15];
 
 /*******************************************************************************************************/
 
@@ -505,6 +496,9 @@ int iRemainPosition;
     Block block;
     unsigned char ucRST;
     iRemainPosition = -1;
+    lEmbeddingBitsCount = 0;
+    srand(7);
+
     for (int i = 0; i < MCUI; i++) {
         for (int j = 0; j < MCUJ; j++) {
             for (int k = 0; k < scanHeader.Ns; k++) {
@@ -538,6 +532,7 @@ int iRemainPosition;
     int row = frameHeaders[0].Y;
     int col = frameHeaders[0].X;
     cout << row << " " << col << endl;
+    cout << "Embedding count: " << lEmbeddingBitsCount << endl;
     
     bool bIsRGB = (scanHeader.Ns > 1);
     Byte *bData = new Byte[(bIsRGB ? 3 : 1) * row * col];
@@ -610,7 +605,7 @@ int iRemainPosition;
 
 - (void)getSample:(fstream&)fs Tc:(int)Tc Th:(int)Th nextAC:(int &)iNextAC
            sample:(int &)sample component:(ComponentOfJPEG&)component {
-    int iCurrentBit;
+    int iCurrentBit = 0;
     int iPorN;
     int iOffset = 0;
     HuffmanTreeNode *htnCurrenNode = htnHuffmanTreeRoot[Tc][Th];
@@ -647,31 +642,20 @@ int iRemainPosition;
         iCurrentBit = [self getNextBit: fs];
         iOffset = (iOffset << 1) | iCurrentBit;
     }
-    
-    // embedding message bits
-    if (component.iID == 1 && rand() % 2) {
-        // embedding bit 1
-        long pos = fout.tellp();
-//        cout << "pos: " << pos << endl;
-        unsigned char ucMask = 1 << (iRemainPosition +1);
-        unsigned char ucTemp = ucRemain | ucMask;
-        if (ucTemp != 0xFF && ucRemain != 0xFF) {
-            fout.seekp(pos -1);
-            fout << ucTemp;
-        }
-    }
-    else if (component.iID == 1) {
-        // embedding bit 0
-        long pos = fout.tellp();
-//        cout << "pos: " << pos << endl;
-        unsigned char ucMask = ((1 << (iRemainPosition +1)) ^ 0xFF);
-        unsigned char ucTemp = ucRemain & ucMask;
-        if (ucTemp != 0xFF && ucRemain != 0xFF) {
-            fout.seekp(pos -1);
-            fout << ucTemp;
-        }
-    }
 
+    NSMenuItem *miCurrenMethod = ((AppDelegate *)[[NSApplication sharedApplication] delegate]).miCurrentMethod;
+    switch (miCurrenMethod.tag) {
+        case 1:
+            [self firstMethodNeedCategory: iCategory andCurrentBit: iCurrentBit andPorN: iPorN];
+            break;
+        case 2:
+            [self secondMethodNeedCategory: iCategory andNextAC: iNextAC
+                             andCurrentBit: iCurrentBit andPorN: iPorN];
+            break;
+        default:
+            [self reddyMethodNeedCategor: iCategory andCurrentBit: iCurrentBit andPorN: iPorN];
+            break;
+    }
     sample = iLowerBoundOfCategory[iPorN][iCategory] + iOffset;
 }
 
@@ -689,7 +673,7 @@ int iRemainPosition;
 
 /*******************************************************************************************************/
 
-int iInvZigZagArray[64] = {
+static int iInvZigZagArray[64] = {
     0,   1,   5,  6,   14,  15,  27,  28,
     2,   4,   7,  13,  16,  26,  29,  42,
     3,   8,  12,  17,  25,  30,  41,  43,
@@ -760,11 +744,11 @@ int iInvZigZagArray[64] = {
 }
 
 /*******************************************************************************************************/
-int iHUFFSIZE[256];
-int iHUFFCODE[256];
-int iEHUFFCODE[256];
-int iEHUFFSIZE[256];
-int iEHUFFCODEBIT[256][16];
+static int iHUFFSIZE[256];
+static int iHUFFCODE[256];
+static int iEHUFFCODE[256];
+static int iEHUFFSIZE[256];
+static int iEHUFFCODEBIT[256][16];
 
 /*******************************************************************************************************/
 
@@ -870,6 +854,144 @@ int iEHUFFCODEBIT[256][16];
             delete htnHuffmanTreeRoot[i][j];
             htnHuffmanTreeRoot[i][j] = nil;
         }
+    }
+}
+/*******************************************************************************************************/
+#pragma mark- Experiment function
+- (IBAction)openMultiFile:(NSMenuItem *)sender {
+    NSURL *baseCoverURL = [NSURL fileURLWithPath: @"/Users/maclaptop/Google Drive/ProjectResearch/Experiment/cover"];
+    string baseStegoPath = "/Users/maclaptop/Desktop/stego/";
+    NSURL *coverURL;
+    string stegoPath;
+    static const string sImages[4] = {"/barbara.jpg", "/cameraman.jpg", "/lena.jpg", "/baboon.jpg" };
+    for (int j = 0; j < 4; j++, cout << endl) {
+        cout << sImages[j].substr(1) << ":" << endl;
+        for (int i = 1; i <= 10; i++) {
+            coverURL = [NSURL fileURLWithPath:[NSString stringWithFormat:@"%i%s", i * 10, sImages[j].c_str()] relativeToURL:baseCoverURL];
+            stegoPath = baseStegoPath + to_string(i * 10) + sImages[j];
+            fout.open(stegoPath, fstream::out | fstream::binary);
+            if (fout.fail()) cout << "Create new file failed!" << endl;
+            [self decodeImageWithFileURL: coverURL];
+        }
+    }
+}
+
+/*******************************************************************************************************/
+static int iObiqueIndex;
+
+- (IBAction)countObiqueRow:(NSMenuItem *)sender {
+    NSURL *coverURL = [NSURL fileURLWithPath: @"/Users/macdesktop/Google Drive/ProjectResearch/Experiment/cover/lena.jpg"];
+    string baseStegoPath = "/Users/macdesktop/Desktop/stego/";
+    string stegoPath;
+    for (iObiqueIndex = 0; iObiqueIndex < 15; iObiqueIndex++) {
+        stegoPath = baseStegoPath + "lena" + to_string(iObiqueIndex +1) + ".jpg";
+        fout.open(stegoPath, fstream::out | fstream::binary);
+        if (fout.fail()) cout << "Create new file failed!" << endl;
+        [self decodeImageWithFileURL: coverURL];
+    }
+}
+
+/*******************************************************************************************************/
+static long lEmbeddingLimit;
+static bool bSecondMethodFirstRun;
+
+- (IBAction)embeddingDataPerTenPercent:(NSMenuItem *)sender {
+    // Get cover and stego image path
+    NSURL *baseCoverURL = [NSURL fileURLWithPath: @"/Users/maclaptop/Google Drive/ProjectResearch/Experiment/cover"];
+    string baseStegoPath = "/Users/maclaptop/Desktop/stego/";
+    NSURL *coverURL;
+    string stegoPath;
+    static const string sImages[4] = {"barbara.jpg", "cameraman.jpg", "lena.jpg", "baboon.jpg" };
+
+    static const long lMaxCapacity[4] = {29421,6385, 19634, 51839};
+    memset(lBitsInRange, 0, sizeof(long) * 15);
+    static long lTemp;
+
+    for (int j = 0; j < 4; j++, cout << endl) {
+        cout << sImages[j] << ":" << endl;
+        bSecondMethodFirstRun = true;
+        for (int i = 0; i <= 10; i++) {
+            coverURL = [NSURL fileURLWithPath:[NSString stringWithFormat:@"%s", sImages[j].c_str()]
+                                relativeToURL:baseCoverURL];
+            if (i != 0) {
+                stegoPath = baseStegoPath + to_string(i * 10) + "/" + sImages[j];
+                lEmbeddingLimit = lMaxCapacity[j] * i / 10;
+                fout.open(stegoPath, fstream::out | fstream::binary);
+                if (fout.fail()) cout << "Create new file failed!" << endl;
+                
+                lTemp = 0;
+                for (int k = 0; k < 15; k++) {
+                    if (lTemp >= lEmbeddingLimit) { iObiqueIndex = k - 1; break; }
+                    lTemp = lTemp + lBitsInRange[k];
+                }
+            }
+            [self decodeImageWithFileURL: coverURL];
+            bSecondMethodFirstRun = false;
+            for (int i = 0; i < 15; i++) cout << lBitsInRange[i] << " "; cout << endl;
+            cout << "====================================" << endl;
+        }
+    }
+}
+
+/*******************************************************************************************************/
+#pragma mark- Stego methods
+
+- (void)reddyMethodNeedCategor:(int)iCategory andCurrentBit:(int)iCurrentBit andPorN:(int)iPorN {
+    
+        // embedding message bits
+        long pos = fout.tellp();
+        pos = (ucRemain == 0xFF) ? pos - 2 : pos -1;
+        fout.seekp(pos);
+        unsigned char ucMask;
+        unsigned char ucTemp;
+        
+        if (iCategory == 1) iCurrentBit = iPorN;
+        
+        if (iCurrentBit != 1) {
+            // embedding bit 1
+            ucMask = 1 << (iRemainPosition +1);
+            ucTemp = ucRemain | ucMask;
+        }
+        else  {
+            // embedding bit 0
+            ucMask = ((1 << (iRemainPosition +1)) ^ 0xFF);
+            ucTemp = ucRemain & ucMask;
+        }
+        fout << ucTemp;
+        if (ucTemp == 0xFF) fout << (char)0x00;
+        ucRemain = ucTemp;
+        lEmbeddingBitsCount++;
+}
+
+/*******************************************************************************************************/
+
+- (void)firstMethodNeedCategory:(int)iCategory andCurrentBit:(int)iCurrentBit andPorN:(int)iPorN {
+    if (lEmbeddingBitsCount > lEmbeddingLimit) return ;
+
+    if (iCategory != 1) {
+        [self reddyMethodNeedCategor: iCategory andCurrentBit: iCurrentBit andPorN: iPorN];
+    }
+}
+
+/*******************************************************************************************************/
+
+- (void)secondMethodNeedCategory:(int)iCategory andNextAC:(int)iNextAC andCurrentBit:(int)iCurrentBit andPorN:(int)iPorN {
+    if (lEmbeddingBitsCount > lEmbeddingLimit) return ;
+    
+    // range for obique row
+    static const int iRange[2][15] = {{0, 1, 3, 6, 10, 15, 21, 28, 36, 43, 49, 54, 58, 61, 63},
+                                      {0, 2, 5, 9, 14, 20, 27, 35, 42, 48, 53, 57, 60, 62, 63}};
+
+    if (bSecondMethodFirstRun && iCategory != 1) {
+        // count capacity in every obique row
+        for (int i = 0; i < 15; i++)
+            if (iNextAC >= iRange[0][i] && iNextAC <= iRange[1][i]) { lBitsInRange[i]++; break; }
+    }
+    
+    if (!bSecondMethodFirstRun && iCategory != 1 && iNextAC >= iRange[0][1] &&
+        iNextAC <= iRange[1][iObiqueIndex]) {
+//        lBitsInRange[iObiqueIndex]++;
+        [self reddyMethodNeedCategor: iCategory andCurrentBit: iCurrentBit andPorN: iPorN];
     }
 }
 

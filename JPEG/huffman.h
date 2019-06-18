@@ -8,6 +8,7 @@
 #include <iostream>
 #include <algorithm>
 #include <string>
+#include <vector>
 using namespace std;
 
 /*****************************************************************************************************/
@@ -49,5 +50,3 @@ string transformValueToCodeWord(int code, int size);
 HuffmanTreeNode* constructHuffmanTree(int EHUFFSIZE[256], int EHUFFCODEBIT[256][16]);
 
 /*****************************************************************************************************/
-
-#include "huffman.cpp"

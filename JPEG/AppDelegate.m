@@ -9,6 +9,8 @@
 #import <Foundation/Foundation.h>
 #import "AppDelegate.h"
 
+#define DefaultMethod 2
+
 @interface AppDelegate ()
 
 @property (strong, nonatomic) NSWindowController *mainController;
@@ -30,6 +32,19 @@
 
     [self.mainController showWindow: self];
 
+}
+
+- (IBAction)chooseMethod:(NSMenuItem *)sender {
+    [self.miCurrentMethod setState: NSControlStateValueOff];
+    [sender setState: NSControlStateValueOn];
+    self.miCurrentMethod = sender;
+}
+
+- (void)applicationDidFinishLaunching:(NSNotification *)notification {
+    NSMenuItem *miMethod = [[[NSApplication sharedApplication] mainMenu] itemWithTitle: @"Method"];
+    NSMenuItem *miReddyMethod = [[miMethod submenu] itemWithTag: DefaultMethod];
+    self.miCurrentMethod = miReddyMethod;
+    [self.miCurrentMethod setState: NSControlStateValueOn];
 }
 
 @end

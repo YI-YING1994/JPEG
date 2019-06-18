@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		242A74B821FA6F73008EB76F /* StegoViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 242A74B721FA6F73008EB76F /* StegoViewController.mm */; };
+		242A74BC21FAA52C008EB76F /* huffman.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D2DB1081F4998B6002A201F /* huffman.cpp */; };
+		242A74C321FAF8A4008EB76F /* Embedder.mm in Sources */ = {isa = PBXBuildFile; fileRef = 242A74C221FAF8A4008EB76F /* Embedder.mm */; };
+		242A74C721FAFDBD008EB76F /* Extractor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 242A74C621FAFDBD008EB76F /* Extractor.mm */; };
 		2D0260381F478E6A0092C27F /* DQTViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D0260371F478E6A0092C27F /* DQTViewController.m */; };
 		2D02603E1F4797BC0092C27F /* DHTViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D02603D1F4797BC0092C27F /* DHTViewController.m */; };
 		2D2DB1091F4998B6002A201F /* reader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D2DB1071F4998B6002A201F /* reader.cpp */; };
@@ -20,6 +24,12 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		242A74B621FA6F73008EB76F /* StegoViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StegoViewController.h; sourceTree = "<group>"; };
+		242A74B721FA6F73008EB76F /* StegoViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = StegoViewController.mm; sourceTree = "<group>"; };
+		242A74C121FAF8A4008EB76F /* Embedder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Embedder.h; sourceTree = "<group>"; };
+		242A74C221FAF8A4008EB76F /* Embedder.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = Embedder.mm; sourceTree = "<group>"; };
+		242A74C521FAFDBD008EB76F /* Extractor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Extractor.h; sourceTree = "<group>"; };
+		242A74C621FAFDBD008EB76F /* Extractor.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = Extractor.mm; sourceTree = "<group>"; };
 		2D0260361F478E6A0092C27F /* DQTViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DQTViewController.h; sourceTree = "<group>"; };
 		2D0260371F478E6A0092C27F /* DQTViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DQTViewController.m; sourceTree = "<group>"; };
 		2D02603C1F4797BC0092C27F /* DHTViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DHTViewController.h; sourceTree = "<group>"; };
@@ -56,6 +66,34 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		242A74C021FAF82D008EB76F /* Controller */ = {
+			isa = PBXGroup;
+			children = (
+				2D8532CD1F474705001AE863 /* ViewController.h */,
+				2D8532CE1F474705001AE863 /* ViewController.mm */,
+				2D0260361F478E6A0092C27F /* DQTViewController.h */,
+				2D0260371F478E6A0092C27F /* DQTViewController.m */,
+				2D02603C1F4797BC0092C27F /* DHTViewController.h */,
+				2D02603D1F4797BC0092C27F /* DHTViewController.m */,
+				2DD9B1292165106F0063AC33 /* ImageViewController.h */,
+				2DD9B12A2165106F0063AC33 /* ImageViewController.m */,
+				242A74B621FA6F73008EB76F /* StegoViewController.h */,
+				242A74B721FA6F73008EB76F /* StegoViewController.mm */,
+			);
+			name = Controller;
+			sourceTree = "<group>";
+		};
+		242A74C421FAF8C9008EB76F /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				242A74C121FAF8A4008EB76F /* Embedder.h */,
+				242A74C221FAF8A4008EB76F /* Embedder.mm */,
+				242A74C521FAFDBD008EB76F /* Extractor.h */,
+				242A74C621FAFDBD008EB76F /* Extractor.mm */,
+			);
+			name = Model;
+			sourceTree = "<group>";
+		};
 		2D2DB10B1F49992D002A201F /* C++ File */ = {
 			isa = PBXGroup;
 			children = (
@@ -96,17 +134,11 @@
 			children = (
 				2D8532C71F474705001AE863 /* AppDelegate.h */,
 				2D8532C81F474705001AE863 /* AppDelegate.m */,
-				2D8532CD1F474705001AE863 /* ViewController.h */,
-				2D8532CE1F474705001AE863 /* ViewController.mm */,
-				2D0260361F478E6A0092C27F /* DQTViewController.h */,
-				2D0260371F478E6A0092C27F /* DQTViewController.m */,
-				2D02603C1F4797BC0092C27F /* DHTViewController.h */,
-				2D02603D1F4797BC0092C27F /* DHTViewController.m */,
-				2DD9B1292165106F0063AC33 /* ImageViewController.h */,
-				2DD9B12A2165106F0063AC33 /* ImageViewController.m */,
 				2D8532D01F474705001AE863 /* Assets.xcassets */,
 				2D8532D21F474706001AE863 /* Main.storyboard */,
 				2D8532D51F474706001AE863 /* Info.plist */,
+				242A74C421FAF8C9008EB76F /* Model */,
+				242A74C021FAF82D008EB76F /* Controller */,
 				2D2DB10B1F49992D002A201F /* C++ File */,
 				2D8532CA1F474705001AE863 /* Supporting Files */,
 			);
@@ -201,11 +233,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				242A74BC21FAA52C008EB76F /* huffman.cpp in Sources */,
 				2D2DB1091F4998B6002A201F /* reader.cpp in Sources */,
+				242A74C321FAF8A4008EB76F /* Embedder.mm in Sources */,
 				2D8532CF1F474705001AE863 /* ViewController.mm in Sources */,
 				2D02603E1F4797BC0092C27F /* DHTViewController.m in Sources */,
 				2DD13A2220A37B5F00B94A0F /* NSImage+cplusplus.mm in Sources */,
+				242A74B821FA6F73008EB76F /* StegoViewController.mm in Sources */,
 				2D8532CC1F474705001AE863 /* main.m in Sources */,
+				242A74C721FAFDBD008EB76F /* Extractor.mm in Sources */,
 				2DD9B12B2165106F0063AC33 /* ImageViewController.m in Sources */,
 				2D0260381F478E6A0092C27F /* DQTViewController.m in Sources */,
 				2D8532C91F474705001AE863 /* AppDelegate.m in Sources */,
@@ -342,6 +378,7 @@
 				INFOPLIST_FILE = JPEG/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = "";
+				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = tw.edu.mcu.05366016.JPEG;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -358,6 +395,7 @@
 				INFOPLIST_FILE = JPEG/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = "";
+				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = tw.edu.mcu.05366016.JPEG;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
