@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		14D147D622BA28E000FCE173 /* ExperimentController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 14D147D522BA28E000FCE173 /* ExperimentController.mm */; };
 		242A74B821FA6F73008EB76F /* StegoViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 242A74B721FA6F73008EB76F /* StegoViewController.mm */; };
 		242A74BC21FAA52C008EB76F /* huffman.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D2DB1081F4998B6002A201F /* huffman.cpp */; };
 		242A74C321FAF8A4008EB76F /* Embedder.mm in Sources */ = {isa = PBXBuildFile; fileRef = 242A74C221FAF8A4008EB76F /* Embedder.mm */; };
@@ -24,6 +25,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		14D147D422BA28E000FCE173 /* ExperimentController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ExperimentController.h; sourceTree = "<group>"; };
+		14D147D522BA28E000FCE173 /* ExperimentController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ExperimentController.mm; sourceTree = "<group>"; };
 		242A74B621FA6F73008EB76F /* StegoViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StegoViewController.h; sourceTree = "<group>"; };
 		242A74B721FA6F73008EB76F /* StegoViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = StegoViewController.mm; sourceTree = "<group>"; };
 		242A74C121FAF8A4008EB76F /* Embedder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Embedder.h; sourceTree = "<group>"; };
@@ -79,6 +82,8 @@
 				2DD9B12A2165106F0063AC33 /* ImageViewController.m */,
 				242A74B621FA6F73008EB76F /* StegoViewController.h */,
 				242A74B721FA6F73008EB76F /* StegoViewController.mm */,
+				14D147D422BA28E000FCE173 /* ExperimentController.h */,
+				14D147D522BA28E000FCE173 /* ExperimentController.mm */,
 			);
 			name = Controller;
 			sourceTree = "<group>";
@@ -236,6 +241,7 @@
 				242A74BC21FAA52C008EB76F /* huffman.cpp in Sources */,
 				2D2DB1091F4998B6002A201F /* reader.cpp in Sources */,
 				242A74C321FAF8A4008EB76F /* Embedder.mm in Sources */,
+				14D147D622BA28E000FCE173 /* ExperimentController.mm in Sources */,
 				2D8532CF1F474705001AE863 /* ViewController.mm in Sources */,
 				2D02603E1F4797BC0092C27F /* DHTViewController.m in Sources */,
 				2DD13A2220A37B5F00B94A0F /* NSImage+cplusplus.mm in Sources */,

@@ -184,13 +184,14 @@
         <!--Tab View Controller-->
         <scene sceneID="jJm-c1-yya">
             <objects>
-                <tabViewController selectedTabViewItemIndex="1" id="l1M-RR-DeE" sceneMemberID="viewController">
+                <tabViewController selectedTabViewItemIndex="5" id="l1M-RR-DeE" sceneMemberID="viewController">
                     <tabViewItems>
                         <tabViewItem label="Others" identifier="" id="pFa-Rs-o9C"/>
                         <tabViewItem label="DQT" identifier="" id="FtP-eP-0jI"/>
                         <tabViewItem label="DHT" id="Nam-Mg-f3y"/>
                         <tabViewItem label="Image" id="jhZ-rw-A5M"/>
                         <tabViewItem label="Stego" id="LiU-y5-xhk"/>
+                        <tabViewItem id="hkC-4v-fH3"/>
                     </tabViewItems>
                     <tabView key="tabView" type="noTabsNoBorder" id="4qv-sp-iGF">
                         <rect key="frame" x="0.0" y="0.0" width="450" height="300"/>
@@ -207,6 +208,7 @@
                         <segue destination="VPW-3P-tH6" kind="relationship" relationship="tabItems" id="qde-x4-Kpx"/>
                         <segue destination="Onl-y6-TVM" kind="relationship" relationship="tabItems" id="HMq-9u-1Ug"/>
                         <segue destination="j0F-Z7-9qW" kind="relationship" relationship="tabItems" id="IvO-gD-QA4"/>
+                        <segue destination="T45-RL-bNd" kind="relationship" relationship="tabItems" id="Uz2-57-1KT"/>
                     </connections>
                 </tabViewController>
                 <customObject id="DnH-dm-K7s" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
@@ -713,6 +715,32 @@
                 <customObject id="guC-vM-tyI" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="1779" y="912"/>
+        </scene>
+        <!--Experiment-->
+        <scene sceneID="qJw-yZ-SqG">
+            <objects>
+                <viewController title="Experiment" id="T45-RL-bNd" customClass="ExperimentController" sceneMemberID="viewController">
+                    <view key="view" id="xNw-YE-Knb">
+                        <rect key="frame" x="0.0" y="0.0" width="450" height="300"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                        <subviews>
+                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Nhg-r9-MDQ">
+                                <rect key="frame" x="14" y="252" width="81" height="32"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="push" title="Button" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="jiw-vi-BB8">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="method2:" target="T45-RL-bNd" id="UUF-oj-8UV"/>
+                                </connections>
+                            </button>
+                        </subviews>
+                    </view>
+                </viewController>
+                <customObject id="ghO-sO-sMF" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="633" y="273"/>
         </scene>
     </scenes>
 </document>
