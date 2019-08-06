@@ -12,6 +12,7 @@
 		242A74BC21FAA52C008EB76F /* huffman.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D2DB1081F4998B6002A201F /* huffman.cpp */; };
 		242A74C321FAF8A4008EB76F /* Embedder.mm in Sources */ = {isa = PBXBuildFile; fileRef = 242A74C221FAF8A4008EB76F /* Embedder.mm */; };
 		242A74C721FAFDBD008EB76F /* Extractor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 242A74C621FAFDBD008EB76F /* Extractor.mm */; };
+		2484193E22C1ED6D000298AC /* SteganPriority.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2484193C22C1ED6D000298AC /* SteganPriority.cpp */; };
 		2D0260381F478E6A0092C27F /* DQTViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D0260371F478E6A0092C27F /* DQTViewController.m */; };
 		2D02603E1F4797BC0092C27F /* DHTViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D02603D1F4797BC0092C27F /* DHTViewController.m */; };
 		2D2DB1091F4998B6002A201F /* reader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D2DB1071F4998B6002A201F /* reader.cpp */; };
@@ -33,6 +34,8 @@
 		242A74C221FAF8A4008EB76F /* Embedder.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = Embedder.mm; sourceTree = "<group>"; };
 		242A74C521FAFDBD008EB76F /* Extractor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Extractor.h; sourceTree = "<group>"; };
 		242A74C621FAFDBD008EB76F /* Extractor.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = Extractor.mm; sourceTree = "<group>"; };
+		2484193C22C1ED6D000298AC /* SteganPriority.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SteganPriority.cpp; sourceTree = "<group>"; };
+		2484193D22C1ED6D000298AC /* SteganPriority.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SteganPriority.h; sourceTree = "<group>"; };
 		2D0260361F478E6A0092C27F /* DQTViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DQTViewController.h; sourceTree = "<group>"; };
 		2D0260371F478E6A0092C27F /* DQTViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DQTViewController.m; sourceTree = "<group>"; };
 		2D02603C1F4797BC0092C27F /* DHTViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DHTViewController.h; sourceTree = "<group>"; };
@@ -106,6 +109,8 @@
 				2D2DB1071F4998B6002A201F /* reader.cpp */,
 				2D3E57C21F4C913200D7B8F7 /* huffman.h */,
 				2D2DB1081F4998B6002A201F /* huffman.cpp */,
+				2484193D22C1ED6D000298AC /* SteganPriority.h */,
+				2484193C22C1ED6D000298AC /* SteganPriority.cpp */,
 			);
 			name = "C++ File";
 			sourceTree = "<group>";
@@ -242,6 +247,7 @@
 				2D2DB1091F4998B6002A201F /* reader.cpp in Sources */,
 				242A74C321FAF8A4008EB76F /* Embedder.mm in Sources */,
 				14D147D622BA28E000FCE173 /* ExperimentController.mm in Sources */,
+				2484193E22C1ED6D000298AC /* SteganPriority.cpp in Sources */,
 				2D8532CF1F474705001AE863 /* ViewController.mm in Sources */,
 				2D02603E1F4797BC0092C27F /* DHTViewController.m in Sources */,
 				2DD13A2220A37B5F00B94A0F /* NSImage+cplusplus.mm in Sources */,

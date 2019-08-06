@@ -68,33 +68,17 @@
                                                 <action selector="chooseMethod:" target="Voe-Tx-rLC" id="Pva-vO-4Bm"/>
                                             </connections>
                                         </menuItem>
-                                        <menuItem title="First method" tag="1" id="wis-ok-i4R">
+                                        <menuItem title="No category 1" tag="1" id="wis-ok-i4R">
                                             <modifierMask key="keyEquivalentModifierMask"/>
                                             <connections>
                                                 <action selector="chooseMethod:" target="Voe-Tx-rLC" id="Mfk-FQ-J6i"/>
                                             </connections>
                                         </menuItem>
-                                        <menuItem title="Second method" tag="2" id="Az5-xM-QrH">
+                                        <menuItem title="Proposed method" tag="2" id="Az5-xM-QrH">
                                             <modifierMask key="keyEquivalentModifierMask"/>
                                             <connections>
                                                 <action selector="chooseMethod:" target="Voe-Tx-rLC" id="eba-IB-mi2"/>
                                             </connections>
-                                        </menuItem>
-                                    </items>
-                                </menu>
-                            </menuItem>
-                            <menuItem title="Experiment" id="CrF-X6-Vnq">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <menu key="submenu" title="Experiment" id="2s0-aV-qIy">
-                                    <items>
-                                        <menuItem title="Open Multi File" id="vSk-gl-s1I">
-                                            <modifierMask key="keyEquivalentModifierMask"/>
-                                        </menuItem>
-                                        <menuItem title="Count Obique Row" tag="1" id="Zmz-Ni-8BF">
-                                            <modifierMask key="keyEquivalentModifierMask"/>
-                                        </menuItem>
-                                        <menuItem title="Embedding Data per 10% Capacity" tag="2" id="nyp-Qx-RC7">
-                                            <modifierMask key="keyEquivalentModifierMask"/>
                                         </menuItem>
                                     </items>
                                 </menu>
@@ -724,18 +708,47 @@
                         <rect key="frame" x="0.0" y="0.0" width="450" height="300"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
-                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Nhg-r9-MDQ">
-                                <rect key="frame" x="14" y="252" width="81" height="32"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <buttonCell key="cell" type="push" title="Button" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="jiw-vi-BB8">
-                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                                    <font key="font" metaFont="system"/>
-                                </buttonCell>
-                                <connections>
-                                    <action selector="method2:" target="T45-RL-bNd" id="UUF-oj-8UV"/>
-                                </connections>
-                            </button>
+                            <stackView distribution="fill" orientation="vertical" alignment="leading" spacing="12" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="BEu-g1-zF5">
+                                <rect key="frame" x="25" y="226" width="168" height="54"/>
+                                <subviews>
+                                    <button verticalHuggingPriority="750" tag="1" translatesAutoresizingMaskIntoConstraints="NO" id="Nhg-r9-MDQ">
+                                        <rect key="frame" x="-6" y="26" width="180" height="32"/>
+                                        <buttonCell key="cell" type="push" title="Worst case embedding" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="jiw-vi-BB8">
+                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="finalSteganMethod:" target="T45-RL-bNd" id="UUF-oj-8UV"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="HHh-kD-Rie">
+                                        <rect key="frame" x="-6" y="-7" width="180" height="32"/>
+                                        <buttonCell key="cell" type="push" title="Extracting" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="yfb-E9-kve">
+                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="finalSteganMethod:" target="T45-RL-bNd" id="300-GH-Tve"/>
+                                        </connections>
+                                    </button>
+                                </subviews>
+                                <constraints>
+                                    <constraint firstAttribute="trailing" secondItem="HHh-kD-Rie" secondAttribute="trailing" id="Ka5-5e-nNo"/>
+                                </constraints>
+                                <visibilityPriorities>
+                                    <integer value="1000"/>
+                                    <integer value="1000"/>
+                                </visibilityPriorities>
+                                <customSpacing>
+                                    <real value="3.4028234663852886e+38"/>
+                                    <real value="3.4028234663852886e+38"/>
+                                </customSpacing>
+                            </stackView>
                         </subviews>
+                        <constraints>
+                            <constraint firstItem="BEu-g1-zF5" firstAttribute="top" secondItem="xNw-YE-Knb" secondAttribute="top" constant="20" id="0xc-Iv-wxx"/>
+                            <constraint firstItem="BEu-g1-zF5" firstAttribute="leading" secondItem="xNw-YE-Knb" secondAttribute="leading" constant="25" id="244-IZ-6fY"/>
+                        </constraints>
                     </view>
                 </viewController>
                 <customObject id="ghO-sO-sMF" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>

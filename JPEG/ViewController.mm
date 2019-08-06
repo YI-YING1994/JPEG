@@ -59,19 +59,16 @@ static int iLowerBoundOfCategory[2][12];
     NSMenuItem *miFile = [[[NSApplication sharedApplication] mainMenu] itemWithTitle: @"File"];
     NSMenuItem *miOpen = [[miFile submenu] itemWithTag: 1];
     
-    NSMenuItem *miExperiment = [[[NSApplication sharedApplication] mainMenu] itemWithTitle: @"Experiment"];
-    NSMenuItem *miOpenMultiFile = [[miExperiment submenu] itemWithTag: 0];
-    NSMenuItem *miCountObiqueRow = [[miExperiment submenu] itemWithTag: 1];
-    NSMenuItem *miEmbeddingDataPerTenPercent = [[miExperiment submenu] itemWithTag: 2];
+//    NSMenuItem *miExperiment = [[[NSApplication sharedApplication] mainMenu] itemWithTitle: @"Experiment"];
+//    NSMenuItem *miOpenMultiFile = [[miExperiment submenu] itemWithTag: 0];
+//    NSMenuItem *miEmbeddingDataPerTenPercent = [[miExperiment submenu] itemWithTag: 2];
 
     [miOpen setTarget: self];
     [miOpen setAction: @selector(pickAnImage)];
-    [miOpenMultiFile setTarget: self];
-    [miOpenMultiFile setAction: @selector(openMultiFile:)];
-    [miCountObiqueRow setTarget:self];
-    [miCountObiqueRow setAction: @selector(countObiqueRow:)];
-    [miEmbeddingDataPerTenPercent setTarget: self];
-    [miEmbeddingDataPerTenPercent setAction: @selector(embeddingDataPerTenPercent:)];
+//    [miOpenMultiFile setTarget: self];
+//    [miOpenMultiFile setAction: @selector(openMultiFile:)];
+//    [miEmbeddingDataPerTenPercent setTarget: self];
+//    [miEmbeddingDataPerTenPercent setAction: @selector(embeddingDataPerTenPercent:)];
     [self categoryLowerBound];
 }
 
@@ -115,7 +112,7 @@ static int iLowerBoundOfCategory[2][12];
 //            [weak_self.ivTest setImage:[[NSImage alloc] initWithContentsOfURL:theDoc]];
 
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                fout.open("/Users/macdesktop/Desktop/Stego.jpg", fstream::out | fstream::binary);
+                fout.open("/Users/maclaptop/Desktop/Stego.jpg", fstream::out | fstream::binary);
                 if (fout.fail()) cout << "Create new file failed!" << endl;
                 [weak_self decodeImageWithFileURL: theDoc];
 
@@ -440,9 +437,7 @@ static ComponentOfJPEG components[3];
 
 static unsigned char ucRemain, ucNext;
 static int iRemainPosition;
-static long lEmbeddingBitsCount;
-static long lBitsInRange[15];
-
+static long long llEmbeddingBitsCount;
 /*******************************************************************************************************/
 
 - (void)decodeScanWithFstream:(fstream&)fs {
@@ -496,8 +491,7 @@ static long lBitsInRange[15];
     Block block;
     unsigned char ucRST;
     iRemainPosition = -1;
-    lEmbeddingBitsCount = 0;
-    srand(7);
+    llEmbeddingBitsCount = 0;
 
     for (int i = 0; i < MCUI; i++) {
         for (int j = 0; j < MCUJ; j++) {
@@ -532,7 +526,8 @@ static long lBitsInRange[15];
     int row = frameHeaders[0].Y;
     int col = frameHeaders[0].X;
     cout << row << " " << col << endl;
-    cout << "Embedding count: " << lEmbeddingBitsCount << endl;
+//    cout << "Embedding limit: " << llEmbeddingLimit << endl;
+    cout << "Embedding count: " << llEmbeddingBitsCount << endl;
     
     bool bIsRGB = (scanHeader.Ns > 1);
     Byte *bData = new Byte[(bIsRGB ? 3 : 1) * row * col];
@@ -649,8 +644,6 @@ static long lBitsInRange[15];
             [self firstMethodNeedCategory: iCategory andCurrentBit: iCurrentBit andPorN: iPorN];
             break;
         case 2:
-            [self secondMethodNeedCategory: iCategory andNextAC: iNextAC
-                             andCurrentBit: iCurrentBit andPorN: iPorN];
             break;
         default:
             [self reddyMethodNeedCategor: iCategory andCurrentBit: iCurrentBit andPorN: iPorN];
@@ -857,86 +850,49 @@ static int iEHUFFCODEBIT[256][16];
     }
 }
 /*******************************************************************************************************/
-#pragma mark- Experiment function
-- (IBAction)openMultiFile:(NSMenuItem *)sender {
-    NSURL *baseCoverURL = [NSURL fileURLWithPath: @"/Users/maclaptop/Google Drive/ProjectResearch/Experiment/cover"];
-    string baseStegoPath = "/Users/maclaptop/Desktop/stego/";
-    NSURL *coverURL;
-    string stegoPath;
-    static const string sImages[4] = {"/barbara.jpg", "/cameraman.jpg", "/lena.jpg", "/baboon.jpg" };
-    for (int j = 0; j < 4; j++, cout << endl) {
-        cout << sImages[j].substr(1) << ":" << endl;
-        for (int i = 1; i <= 10; i++) {
-            coverURL = [NSURL fileURLWithPath:[NSString stringWithFormat:@"%i%s", i * 10, sImages[j].c_str()] relativeToURL:baseCoverURL];
-            stegoPath = baseStegoPath + to_string(i * 10) + sImages[j];
-            fout.open(stegoPath, fstream::out | fstream::binary);
-            if (fout.fail()) cout << "Create new file failed!" << endl;
-            [self decodeImageWithFileURL: coverURL];
-        }
-    }
-}
+//#pragma mark- Experiment function
+//- (IBAction)openMultiFile:(NSMenuItem *)sender {
+//    NSURL *baseCoverURL = [NSURL fileURLWithPath: @"/Users/maclaptop/Google Drive/ProjectResearch/Experiment/cover"];
+//    string baseStegoPath = "/Users/maclaptop/Desktop/stego/";
+//    NSURL *coverURL;
+//    string stegoPath;
+//    static const string sImages[4] = {"/barbara.jpg", "/cameraman.jpg", "/lena.jpg", "/baboon.jpg" };
+//    for (int j = 0; j < 4; j++, cout << endl) {
+//        cout << sImages[j].substr(1) << ":" << endl;
+//        for (int i = 1; i <= 10; i++) {
+//            coverURL = [NSURL fileURLWithPath:[NSString stringWithFormat:@"%i%s", i * 10, sImages[j].c_str()] relativeToURL:baseCoverURL];
+//            stegoPath = baseStegoPath + to_string(i * 10) + sImages[j];
+//            fout.open(stegoPath, fstream::out | fstream::binary);
+//            if (fout.fail()) cout << "Create new file failed!" << endl;
+//            [self decodeImageWithFileURL: coverURL];
+//        }
+//    }
+//}
 
 /*******************************************************************************************************/
-static int iObiqueIndex;
-
-- (IBAction)countObiqueRow:(NSMenuItem *)sender {
-    NSURL *coverURL = [NSURL fileURLWithPath: @"/Users/macdesktop/Google Drive/ProjectResearch/Experiment/cover/lena.jpg"];
-    string baseStegoPath = "/Users/macdesktop/Desktop/stego/";
-    string stegoPath;
-    for (iObiqueIndex = 0; iObiqueIndex < 15; iObiqueIndex++) {
-        stegoPath = baseStegoPath + "lena" + to_string(iObiqueIndex +1) + ".jpg";
-        fout.open(stegoPath, fstream::out | fstream::binary);
-        if (fout.fail()) cout << "Create new file failed!" << endl;
-        [self decodeImageWithFileURL: coverURL];
-    }
-}
-
-/*******************************************************************************************************/
-static long lEmbeddingLimit;
-static bool bSecondMethodFirstRun;
-
-- (IBAction)embeddingDataPerTenPercent:(NSMenuItem *)sender {
-    // Get cover and stego image path
-    NSURL *baseCoverURL = [NSURL fileURLWithPath: @"/Users/maclaptop/Google Drive/ProjectResearch/Experiment/cover"];
-    string baseStegoPath = "/Users/maclaptop/Desktop/stego/";
-    NSURL *coverURL;
-    string stegoPath;
-    static const string sImages[4] = {"barbara.jpg", "cameraman.jpg", "lena.jpg", "baboon.jpg" };
-
-    static const long lMaxCapacity[4] = {29421,6385, 19634, 51839};
-    memset(lBitsInRange, 0, sizeof(long) * 15);
-    static long lTemp;
-
-    for (int j = 0; j < 4; j++, cout << endl) {
-        cout << sImages[j] << ":" << endl;
-        bSecondMethodFirstRun = true;
-        for (int i = 0; i <= 10; i++) {
-            coverURL = [NSURL fileURLWithPath:[NSString stringWithFormat:@"%s", sImages[j].c_str()]
-                                relativeToURL:baseCoverURL];
-            if (i != 0) {
-                stegoPath = baseStegoPath + to_string(i * 10) + "/" + sImages[j];
-                lEmbeddingLimit = lMaxCapacity[j] * i / 10;
-                fout.open(stegoPath, fstream::out | fstream::binary);
-                if (fout.fail()) cout << "Create new file failed!" << endl;
-                
-                lTemp = 0;
-                for (int k = 0; k < 15; k++) {
-                    if (lTemp >= lEmbeddingLimit) { iObiqueIndex = k - 1; break; }
-                    lTemp = lTemp + lBitsInRange[k];
-                }
-            }
-            [self decodeImageWithFileURL: coverURL];
-            bSecondMethodFirstRun = false;
-            for (int i = 0; i < 15; i++) cout << lBitsInRange[i] << " "; cout << endl;
-            cout << "====================================" << endl;
-        }
-    }
-}
+//static long long llEmbeddingLimit;
+//
+//- (IBAction)embeddingDataPerTenPercent:(NSMenuItem *)sender {
+//    NSURL *coverURL = [NSURL fileURLWithPath: @"/Users/maclaptop/Desktop/cover/baboon.jpg"];
+//    string baseStegoPath = "/Users/maclaptop/Desktop/stego/";
+//    string stegoPath;
+//    static const long long llMaxCapacity[4] = {29421,6385, 19634, 51839};
+//
+//    for (int i = 1; i <= 10; i++) {
+//        stegoPath = baseStegoPath + "baboon" + to_string(i) + ".jpg";
+//        llEmbeddingLimit = llMaxCapacity[3] * i * 0.1;
+//        fout.open(stegoPath, fstream::out | fstream::binary);
+//        if (fout.fail()) cout << "Create new file failed!" << endl;
+//        [self decodeImageWithFileURL: coverURL];
+//    }
+//
+//}
 
 /*******************************************************************************************************/
 #pragma mark- Stego methods
 
 - (void)reddyMethodNeedCategor:(int)iCategory andCurrentBit:(int)iCurrentBit andPorN:(int)iPorN {
+//        if (llEmbeddingBitsCount >= llEmbeddingLimit) return ;
     
         // embedding message bits
         long pos = fout.tellp();
@@ -960,13 +916,13 @@ static bool bSecondMethodFirstRun;
         fout << ucTemp;
         if (ucTemp == 0xFF) fout << (char)0x00;
         ucRemain = ucTemp;
-        lEmbeddingBitsCount++;
+        llEmbeddingBitsCount++;
 }
 
 /*******************************************************************************************************/
 
 - (void)firstMethodNeedCategory:(int)iCategory andCurrentBit:(int)iCurrentBit andPorN:(int)iPorN {
-    if (lEmbeddingBitsCount > lEmbeddingLimit) return ;
+//    if (llEmbeddingBitsCount > llEmbeddingLimit) return ;
 
     if (iCategory != 1) {
         [self reddyMethodNeedCategor: iCategory andCurrentBit: iCurrentBit andPorN: iPorN];
@@ -974,25 +930,5 @@ static bool bSecondMethodFirstRun;
 }
 
 /*******************************************************************************************************/
-
-- (void)secondMethodNeedCategory:(int)iCategory andNextAC:(int)iNextAC andCurrentBit:(int)iCurrentBit andPorN:(int)iPorN {
-    if (lEmbeddingBitsCount > lEmbeddingLimit) return ;
-    
-    // range for obique row
-    static const int iRange[2][15] = {{0, 1, 3, 6, 10, 15, 21, 28, 36, 43, 49, 54, 58, 61, 63},
-                                      {0, 2, 5, 9, 14, 20, 27, 35, 42, 48, 53, 57, 60, 62, 63}};
-
-    if (bSecondMethodFirstRun && iCategory != 1) {
-        // count capacity in every obique row
-        for (int i = 0; i < 15; i++)
-            if (iNextAC >= iRange[0][i] && iNextAC <= iRange[1][i]) { lBitsInRange[i]++; break; }
-    }
-    
-    if (!bSecondMethodFirstRun && iCategory != 1 && iNextAC >= iRange[0][1] &&
-        iNextAC <= iRange[1][iObiqueIndex]) {
-//        lBitsInRange[iObiqueIndex]++;
-        [self reddyMethodNeedCategor: iCategory andCurrentBit: iCurrentBit andPorN: iPorN];
-    }
-}
 
 @end

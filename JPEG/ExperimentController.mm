@@ -11,6 +11,7 @@
 #import <string>
 #import "reader.h"
 #import "huffman.h"
+#import "SteganPriority.h"
 #import "NSImage+cplusplus.h"
 #import "ImageViewController.h"
 #import "ExperimentController.h"
@@ -31,6 +32,7 @@ static HuffmanTreeNode *htnHuffmanTreeRoot[2][2] = { nil };
 static int iQuantizationTables[4][64];
 static int iLowerBoundOfCategory[2][12];
 static int iUpperBoundOfCategory[2][12];
+static int iSteganPriority[4][64];
 
 
 /*******************************************************************************************************/
@@ -64,18 +66,6 @@ static int iUpperBoundOfCategory[2][12];
 }
 
 /*******************************************************************************************************/
-#pragma mark- Menu item validate
-- (BOOL)validateMenuItem:(NSMenuItem *)menuItem {
-    
-    NSWindowController *applicationController = [[[NSApplication sharedApplication] mainWindow] windowController];
-    
-    if (applicationController == nil || self.opPanel != nil)
-        return NO;
-    
-    return YES;
-}
-
-/*******************************************************************************************************/
 #pragma mark- Use open panel to pick image
 - (void)pickAnImage {
     
@@ -97,7 +87,7 @@ static int iUpperBoundOfCategory[2][12];
             //            [weak_self.ivTest setImage:[[NSImage alloc] initWithContentsOfURL:theDoc]];
             
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                fout.open("/Users/macdesktop/Desktop/Stego.jpg", fstream::out | fstream::binary);
+                fout.open("/Users/maclaptop/Desktop/Stego.jpg", fstream::out | fstream::binary);
                 if (fout.fail()) cout << "Create new file failed!" << endl;
                 [weak_self decodeImageWithFileURL: theDoc];
             });
@@ -280,7 +270,7 @@ static fstream fout;
         
         //Get Qk
         for (int j = 0; j < 64; j++)
-            iQuantizationTables[parameters[i].Tq][j] = parameters[i].Qk[j];
+            iQuantizationTables[parameters[i].Tq][j] = parameters[i].Qk[iInvZigZagArray[j]];
         
     }
 }
@@ -336,20 +326,23 @@ static ComponentOfJPEG components[3];
 
 static unsigned char ucRemain, ucNext;
 static int iRemainPosition;
-static long lEmbeddingBitsCount;
+static long long llEmbeddingBitsCount;
 
 /*******************************************************************************************************/
 
 - (void)decodeScanWithFstream:(fstream&)fs {
+    // read in scan header
     ScanHeader scanHeader;
     fs >> scanHeader;
     fout << scanHeader;
-    
     scanHeaders.push_back(scanHeader);
     
+    // Get stegan priority from quantization table
+    for (int i = 0; i < 4; i++) 
+        GetSteganPriority(iQuantizationTables[i], iSteganPriority[i]);
     
+#pragma mark Decode JPEG
     vector<ScanComponentParameter> scanComponents = scanHeader.scanComponentParameters;
-    
     int MCUI = ceil((double)components[0].Y / (components[0].Vimax * 8));
     int MCUJ = ceil((double)components[0].X / (components[0].Himax * 8));
     for (int i = 0; i < scanHeader.Ns; i++) {
@@ -363,11 +356,13 @@ static long lEmbeddingBitsCount;
     }
     int iCurrentI;
     int iCurrentJ;
+    int iCoefficient;
+    int iPriority;
     Block block;
+    long long llSteganPriorityCapacity[64] = {0};
+    long long llTotalCapacity = 0;
     unsigned char ucRST;
     iRemainPosition = -1;
-    lEmbeddingBitsCount = 0;
-    
     for (int i = 0; i < MCUI; i++) {
         for (int j = 0; j < MCUJ; j++) {
             for (int k = 0; k < scanHeader.Ns; k++) {
@@ -377,8 +372,15 @@ static long lEmbeddingBitsCount;
                         iCurrentJ = j * components[k].Hi * 8 + n * 8;
                         [self getBlock: fs block: block component: components[k]];
                         for (int x = 0; x < 8; x++)
-                            for (int y = 0; y < 8; y++)
+                            for (int y = 0; y < 8; y++) {
+                                iCoefficient = block[x * 8 + y];
+                                iPriority = iSteganPriority[components[k].iTqi][x * 8 +y];
+                                if (iCoefficient != 0 && iCoefficient != -1 &&
+                                    iCoefficient != 1 && iPriority != -1) {
+                                    llSteganPriorityCapacity[iPriority]++; llTotalCapacity++;
+                                }
                                 components[k][iCurrentI + x][iCurrentJ + y] = block[x * 8 + y];
+                            }
                     }
                 }
             }
@@ -395,6 +397,83 @@ static long lEmbeddingBitsCount;
     }
     cout << "Decoding finished..." << endl;
 
+    cout << "Total Capacity: " << llTotalCapacity << endl;
+    int iCurrentPriority = 0;
+    long long llMessageBit = 1;//llTotalCapacity * iPercent * 0.1;
+    cout << "Message: " << llMessageBit << endl;
+#pragma mark Extracting message
+    if (!bEmbedding) {
+        bool bExtractingFinished = false;
+        long long llExtractingCount = 0;
+        while (!bExtractingFinished) {
+            for (int i = 0; i < MCUI &&!bExtractingFinished; i++) {
+                for (int j = 0; j < MCUJ &&!bExtractingFinished; j++) {
+                    for (int k = 0; k < scanHeader.Ns &&!bExtractingFinished; k++) {
+                        for (int m = 0; m < components[k].Vi &&!bExtractingFinished; m++) {
+                            for (int n = 0; n < components[k].Hi &&!bExtractingFinished; n++) {
+                                iCurrentI = i * components[k].Vi * 8 + m * 8;
+                                iCurrentJ = j * components[k].Hi * 8 + n * 8;
+                                for (int x = 0; x < 8 &&!bExtractingFinished; x++)
+                                    for (int y = 0; y < 8 &&!bExtractingFinished; y++) {
+                                        iCoefficient = components[k][iCurrentI + x][iCurrentJ + y];
+                                        if (iSteganPriority[components[k].iTqi][x * 8 +y] == iCurrentPriority &&
+                                            iCoefficient != 0 && iCoefficient != 1 && iCoefficient != -1) {
+                                            if (iCoefficient < 0) iCoefficient -= 1;
+                                            cout << (iCoefficient & 0x1);
+                                            llExtractingCount++;
+                                            if (llExtractingCount >= llMessageBit) bExtractingFinished = true;
+                                        }
+                                    }
+                            }
+                        }
+                    }
+                }
+            }
+            iCurrentPriority++;
+        }
+        return;
+    }
+
+#pragma mark stegan method
+    bool bEmbeddingFinished = false;
+    iCurrentPriority = 0;
+    llEmbeddingBitsCount = 0;
+    while (!bEmbeddingFinished) {
+        for (int i = 0; i < MCUI && !bEmbeddingFinished; i++) {
+            for (int j = 0; j < MCUJ && !bEmbeddingFinished; j++) {
+                for (int k = 0; k < scanHeader.Ns && !bEmbeddingFinished; k++) {
+                    for (int m = 0; m < components[k].Vi && !bEmbeddingFinished; m++) {
+                        for (int n = 0; n < components[k].Hi && !bEmbeddingFinished; n++) {
+                            iCurrentI = i * components[k].Vi * 8 + m * 8;
+                            iCurrentJ = j * components[k].Hi * 8 + n * 8;
+                            for (int x = 0; x < 8 && !bEmbeddingFinished; x++)
+                                for (int y = 0; y < 8 && !bEmbeddingFinished; y++) {
+                                    iCoefficient = components[k][iCurrentI + x][iCurrentJ + y];
+                                    if (iSteganPriority[components[k].iTqi][x * 8 +y] == iCurrentPriority &&
+                                        iCoefficient != 0 && iCoefficient != 1 && iCoefficient != -1) {
+                                        if (iCoefficient < 0) iCoefficient -= 1;
+                                        if (iCoefficient & 0x1) {
+                                            components[k][iCurrentI + x][iCurrentJ + y] -= 1;
+                                            cout << "0";
+                                        }
+                                        else {
+                                            components[k][iCurrentI + x][iCurrentJ + y] += 1;
+                                            cout << "1";
+                                        }
+                                        llEmbeddingBitsCount++;
+                                        if (llEmbeddingBitsCount >= llMessageBit) bEmbeddingFinished = true;
+                                    }
+                                }
+                        }
+                    }
+                }
+            }
+        }
+        iCurrentPriority++;
+    }
+    cout << "Embedding count: " << llEmbeddingBitsCount << endl;
+    cout << "Current Priority: " << iCurrentPriority << endl;
+    
 #pragma mark encode JPEG
     self.ucBitStream = 0x00;
     self.iBitStreamIndex = 7;
@@ -404,7 +483,6 @@ static long lEmbeddingBitsCount;
     for (int i = 0; i < MCUI; i++) {
         for (int j = 0; j < MCUJ; j++) {
             for (int k = 0; k < scanHeader.Ns; k++) {
-                cout << "component " << k << endl;
                 for (int m = 0; m < components[k].Vi; m++) {
                     for (int n = 0; n < components[k].Hi; n++) {
                         iCurrentI = i * components[k].Vi * 8 + m * 8;
@@ -413,7 +491,6 @@ static long lEmbeddingBitsCount;
                             for (int y = 0; y < 8; y++)
                                 block[iInvZigZagArray[x * 8 + y]] = components[k][iCurrentI + x][iCurrentJ + y];
                         [self encodeBlock: block component: components[k]];
-
                     }
                 }
             }
@@ -437,7 +514,7 @@ static long lEmbeddingBitsCount;
 //    int row = frameHeaders[0].Y;
 //    int col = frameHeaders[0].X;
 //    cout << row << " " << col << endl;
-//    cout << "Embedding count: " << lEmbeddingBitsCount << endl;
+//    cout << "Embedding count: " << llEmbeddingBitsCount << endl;
 //
 //    bool bIsRGB = (scanHeader.Ns > 1);
 //    Byte *bData = new Byte[(bIsRGB ? 3 : 1) * row * col];
@@ -583,10 +660,10 @@ static int iInvZigZagArray[64] = {
 - (void)deZigZag:(Block &)block andDequantization:(int)Tqi {
     Block temp;
     for (int i = 0; i < 64; i++)
-        temp[i] = block[i];// * iQuantizationTables[Tqi][i];
+        temp[i] = block[i];
     
     for (int i = 0; i < 64; i++)
-        block[i] = temp[iInvZigZagArray[i]];
+        block[i] = temp[iInvZigZagArray[i]];// * iQuantizationTables[Tqi][i];
     
 }
 
@@ -846,9 +923,22 @@ static int iTh;
 
 /*******************************************************************************************************/
 #pragma mark- Experiment function
-
-- (IBAction)method2:(NSButton *)sender {
+static bool bEmbedding;
+static int iPercent = 1;
+- (IBAction)finalSteganMethod:(NSButton *)sender {
+    bEmbedding = sender.tag;
+    iPercent = 10;
     [self pickAnImage];
+//    NSURL *coverURL = [NSURL fileURLWithPath: @"/Users/maclaptop/Desktop/cover/baboon.jpg"];
+//    string baseStegoPath = "/Users/maclaptop/Desktop/stego/";
+//    string stegoPath;
+//    for (iPercent = 1; iPercent <= 10; iPercent++) {
+//        stegoPath = baseStegoPath + "baboon" + to_string(iPercent) + ".jpg";
+//        fout.open(stegoPath, fstream::out | fstream::binary);
+//        if (fout.fail()) cout << "Create new file failed!" << endl;
+//        [self decodeImageWithFileURL: coverURL];
+//    }
+
 }
 
 /*******************************************************************************************************/
